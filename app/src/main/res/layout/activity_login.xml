@@ -11,8 +11,8 @@
 
     <ImageView
         android:id="@+id/appLogo"
-        android:layout_width="200dp"
-        android:layout_height="187dp"
+        android:layout_width="170dp"
+        android:layout_height="170dp"
         android:layout_gravity="center"
         android:layout_marginTop="40dp"
         android:contentDescription="App Logo"
@@ -68,7 +68,7 @@
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:background="@drawable/border2"
-                android:drawableStart="@drawable/baseline_alternate_email_24"
+                android:drawableStart="@drawable/baseline_email_24"
                 android:hint=" Type your email :"
                 android:inputType="text"
                 android:paddingStart="12dp"
@@ -92,7 +92,7 @@
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:background="@drawable/border2"
-                android:drawableLeft="@drawable/passlockk"
+                android:drawableLeft="@drawable/finalpasslock"
                 android:hint=" Type your password : "
                 android:inputType="textPassword"
                 android:paddingLeft="12dp"

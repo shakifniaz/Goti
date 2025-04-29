@@ -28,6 +28,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
+                android:layout_marginTop="44dp"
                 android:text="Sign Up"
                 android:fontFamily="@font/montserrat_bold"
                 android:textColor="#FFFFFF"
@@ -38,14 +39,14 @@
                 android:id="@+id/name"
                 android:layout_width="330dp"
                 android:layout_height="48dp"
-                android:layout_marginTop="30dp"
+                android:layout_marginTop="35dp"
                 android:layout_gravity="center"
                 android:drawableStart="@drawable/account_white"
                 android:hint=" Full Name"
                 android:inputType="textPersonName"
                 android:paddingStart="12dp"
                 android:textColorHint="@color/white"
-                android:textSize="15sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 tools:ignore="TextFields" />
 
@@ -60,7 +61,7 @@
                 android:inputType="textEmailAddress"
                 android:paddingStart="12dp"
                 android:textColorHint="@color/white"
-                android:textSize="15sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 tools:ignore="TextFields" />
 
@@ -75,7 +76,7 @@
                 android:inputType="textPassword"
                 android:paddingLeft="12dp"
                 android:textColorHint="@color/white"
-                android:textSize="15sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <EditText
@@ -89,7 +90,7 @@
                 android:inputType="textPassword"
                 android:paddingLeft="12dp"
                 android:textColorHint="@color/white"
-                android:textSize="15sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <EditText
@@ -103,7 +104,7 @@
                 android:inputType="number"
                 android:paddingLeft="12dp"
                 android:textColorHint="@color/white"
-                android:textSize="15sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <EditText
@@ -117,7 +118,7 @@
                 android:inputType="number"
                 android:paddingLeft="12dp"
                 android:textColorHint="@color/white"
-                android:textSize="15sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <EditText
@@ -131,7 +132,7 @@
                 android:inputType="date"
                 android:paddingLeft="12dp"
                 android:textColorHint="#FFFFFF"
-                android:textSize="15sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <EditText
@@ -145,45 +146,62 @@
                 android:inputType="phone"
                 android:paddingLeft="12dp"
                 android:textColorHint="@color/white"
-                android:textSize="15sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
 
-            <RadioGroup
-                android:id="@+id/genderGroup"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="330dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:orientation="horizontal">
-
-                <RadioButton
-                    android:id="@+id/male"
+                android:layout_gravity="center">
+                <TextView
                     android:layout_width="wrap_content"
-                    android:layout_height="48dp"
-                    android:buttonTint="@color/white"
-                    android:text="Male"
+                    android:layout_height="wrap_content"
+                    android:drawableLeft="@drawable/gender_iconn"
+                    android:text=" Gender"
+                    android:paddingLeft="12dp"
+                    android:textSize="12sp"
                     android:textColor="@color/white"
-                    android:textSize="16sp" />
-
-                <RadioButton
-                    android:id="@+id/female"
+                    android:layout_gravity="center"
+                    />
+                <RadioGroup
+                    android:id="@+id/genderGroup"
                     android:layout_width="wrap_content"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="30dp"
-                    android:buttonTint="@color/white"
-                    android:text="Female"
-                    android:textColor="@color/white"
-                    android:textSize="16sp" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:orientation="horizontal">
 
-            </RadioGroup>
+                    <RadioButton
+                        android:id="@+id/male"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:buttonTint="@color/white"
+                        android:text="Male"
+                        android:textColor="@color/white"
+                        android:textSize="13sp" />
+
+                    <RadioButton
+                        android:id="@+id/female"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="20dp"
+                        android:buttonTint="@color/white"
+                        android:text="Female"
+                        android:textColor="@color/white"
+                        android:textSize="13sp" />
+
+                </RadioGroup>
+            </LinearLayout>
+
 
             <Button
                 android:id="@+id/registerButton"
                 android:layout_width="280dp"
                 android:layout_height="63dp"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="30dp"
                 android:layout_gravity="center"
                 android:background="@drawable/button"
                 android:fontFamily="@font/montserrat_bold"
