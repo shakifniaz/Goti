@@ -64,7 +64,7 @@
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="10dp"
                 android:fontFamily="@font/line_seed_sans_bd"
-                android:text="Welcome"
+                android:text="Not Welcome"
                 android:textAlignment="center"
                 android:textColor="#D569F6"
                 android:textSize="45sp"
