@@ -15,13 +15,13 @@
 
         <ImageView
             android:id="@+id/bg"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="419dp"
+            android:layout_height="731dp"
             android:scaleType="centerCrop"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/get_started_bg" />
+            app:srcCompat="@drawable/get_started_bg2" />
 
         <ImageView
             android:id="@+id/logo"
@@ -61,7 +61,7 @@
                 android:id="@+id/textView3"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="30dp"
                 android:layout_marginBottom="10dp"
                 android:fontFamily="@font/line_seed_sans_bd"
                 android:text="Welcome"
@@ -81,6 +81,7 @@
                 android:fontFamily="@font/line_seed_sans_bd"
                 android:padding="10dp"
                 android:text="Driver"
+                android:textColor="@color/white"
                 android:textSize="25sp"
                 app:backgroundTint="@null" />
 
@@ -95,6 +96,7 @@
                 android:padding="10dp"
                 android:paddingTop="50dp"
                 android:text="Customer"
+                android:textColor="@color/white"
                 android:textSize="25sp"
                 app:backgroundTint="@null" />
 
@@ -109,10 +111,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:fontFamily="@font/line_seed_sans_rg"
                     android:text="Already a member?  "
                     android:textColor="@color/white"
-                    android:textSize="18dp" />
+                    android:textSize="16dp" />
 
                 <TextView
                     android:id="@+id/loginLink"
@@ -120,10 +121,9 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:clickable="true"
-                    android:fontFamily="@font/line_seed_sans_bd"
                     android:text="Login "
                     android:textColor="#D368F4"
-                    android:textSize="20dp"
+                    android:textSize="18dp"
                     android:textStyle="bold"
                     tools:ignore="TouchTargetSizeCheck" />
             </LinearLayout>
