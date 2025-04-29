@@ -113,18 +113,6 @@
                 android:textStyle="bold" />
 
             <!-- Fixed Button Here -->
-            <Button
-                android:id="@+id/registration"
-                android:layout_width="330dp"
-                android:layout_height="63dp"
-                android:layout_gravity="center"
-                android:layout_marginTop="30dp"
-                android:background="@drawable/gradient_button"
-                android:text="Register"
-                android:textAllCaps="true"
-                android:textColor="@color/white"
-                android:textSize="20sp"
-                android:textStyle="bold" />
 
             <Button
                 android:id="@+id/loginButton"
