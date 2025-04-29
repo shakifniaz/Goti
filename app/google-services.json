@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "590210317407",
+    "firebase_url": "https://goti-fffc6-default-rtdb.firebaseio.com",
+    "project_id": "goti-fffc6",
+    "storage_bucket": "goti-fffc6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:590210317407:android:71f55b15f9f0ba8a1f2fea",
+        "android_client_info": {
+          "package_name": "com.example.goti"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAki34c1aSKeFTxWp8vTeM8Zcsom0ThbCM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

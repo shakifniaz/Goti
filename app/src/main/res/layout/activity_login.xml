@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/get_started_bg2"
+    android:orientation="vertical"
+    tools:context=".CustomerLoginActivity">
+
+    <ImageView
+        android:id="@+id/appLogo"
+        android:layout_width="200dp"
+        android:layout_height="187dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="40dp"
+        android:contentDescription="App Logo"
+        android:src="@drawable/logo_white" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_gravity="bottom"
+        android:layout_marginTop="30dp"
+        android:layout_weight="0.7">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/card_bg"
+            android:orientation="vertical"
+            android:padding="15dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="45dp"
+                android:fontFamily="@font/montserrat_bold"
+                android:text="@string/sign"
+                android:textColor="@color/purple_text"
+                android:textSize="35sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="4dp"
+                android:text="@string/loginacc"
+                android:textColor="@color/purple_text"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="330dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="40dp"
+                android:paddingStart="10dp"
+                android:text="@string/email"
+                android:textColor="@color/white"
+                android:textSize="16sp" />
+
+            <EditText
+                android:id="@+id/email"
+                android:layout_width="330dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:background="@drawable/border2"
+                android:drawableStart="@drawable/baseline_alternate_email_24"
+                android:hint=" Type your email :"
+                android:inputType="text"
+                android:paddingStart="12dp"
+                android:textColorHint="@color/purple_text"
+                android:textSize="16sp"
+                tools:ignore="TextFields" />
+
+            <TextView
+                android:layout_width="330dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="18dp"
+                android:paddingLeft="10dp"
+                android:text="Password"
+                android:textColor="@color/white"
+                android:textSize="16sp" />
+
+            <EditText
+                android:id="@+id/password"
+                android:layout_width="330dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:background="@drawable/border2"
+                android:drawableLeft="@drawable/passlockk"
+                android:hint=" Type your password : "
+                android:inputType="textPassword"
+                android:paddingLeft="12dp"
+                android:textColorHint="@color/purple_text"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="330dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:layout_marginTop="5dp"
+                android:id="@+id/forgotpassword"
+                android:clickable="true"
+                android:paddingLeft="189dp"
+                android:text="Forgot Password? "
+                android:textColor="@color/purple_text"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <!-- Fixed Button Here -->
+            <Button
+                android:id="@+id/loginButton"
+                android:layout_width="330dp"
+                android:layout_height="63dp"
+                android:layout_gravity="center"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/gradient_button"
+                android:text="@string/login"
+                android:textAllCaps="true"
+                android:textColor="@color/white"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Don't have an account?"
+                    android:textColor="@color/white"
+                    android:textSize="19sp"
+                    android:textStyle="normal" />
+
+                <TextView
+                    android:id="@+id/registration1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingLeft="10dp"
+                    android:text="Register Now!"
+                    android:textAllCaps="true"
+                    android:textColor="@color/purple_text"
+                    android:textSize="19sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

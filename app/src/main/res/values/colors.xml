@@ -1,0 +1,8 @@
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="cyan">#087A7A</color>
+    <color name="cyan2">#E1FFFF</color>
+    <color name="purple_button">#9025B0</color>
+    <color name="purple_text">#D179F2</color>
+</resources>

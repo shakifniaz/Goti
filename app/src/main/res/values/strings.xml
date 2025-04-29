@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Goti</string>
+    <string name="intro">The best travel &amp; parcel companion.</string>
+    <string name="login">LogIn</string>
+    <string name="register">Create an account</string>
+    <string name="sign">Welcome Back</string>
+    <string name="loginacc">Login to your account</string>
+    <string name="email">Email</string>
+    <string name="type_email"> Type your email : </string>
+
+
+</resources>

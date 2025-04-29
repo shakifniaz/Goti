@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    >
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:isScrollContainer="false">
+
+        <ImageView
+            android:id="@+id/bg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:scaleType="centerCrop"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/get_started_bg" />
+
+        <ImageView
+            android:id="@+id/logo"
+            android:layout_width="287dp"
+            android:layout_height="273dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="50dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/logo_white" />
+
+        <TextView
+            android:id="@+id/textView2"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:fontFamily="@font/line_seed_sans_xbd"
+            android:text="GOTI APP"
+            android:textAlignment="center"
+            android:textColor="#E7E7E7"
+            android:textSize="45sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/logo" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="350dp"
+            android:layout_marginTop="400dp"
+            android:background="@drawable/top_corner_radius"
+            android:orientation="vertical"
+            app:layout_constraintTop_toTopOf="@+id/bg"
+            tools:layout_editor_absoluteX="0dp">
+
+            <TextView
+                android:id="@+id/textView3"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="10dp"
+                android:fontFamily="@font/line_seed_sans_bd"
+                android:text="Welcome"
+                android:textAlignment="center"
+                android:textColor="#D569F6"
+                android:textSize="45sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/driver"
+                android:layout_width="210dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_margin="15dp"
+                android:background="@drawable/button"
+                android:elevation="45dp"
+                android:fontFamily="@font/line_seed_sans_bd"
+                android:padding="10dp"
+                android:text="Driver"
+                android:textSize="25sp"
+                app:backgroundTint="@null" />
+
+            <Button
+                android:id="@+id/customer"
+                android:layout_width="210dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:background="@drawable/button"
+                android:elevation="45dp"
+                android:fontFamily="@font/line_seed_sans_bd"
+                android:padding="10dp"
+                android:paddingTop="50dp"
+                android:text="Customer"
+                android:textSize="25sp"
+                app:backgroundTint="@null" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="29dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:fontFamily="@font/line_seed_sans_rg"
+                    android:text="Already a member?  "
+                    android:textColor="@color/white"
+                    android:textSize="18dp" />
+
+                <TextView
+                    android:id="@+id/loginLink"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:clickable="true"
+                    android:fontFamily="@font/line_seed_sans_bd"
+                    android:text="Login "
+                    android:textColor="#D368F4"
+                    android:textSize="20dp"
+                    android:textStyle="bold"
+                    tools:ignore="TouchTargetSizeCheck" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
