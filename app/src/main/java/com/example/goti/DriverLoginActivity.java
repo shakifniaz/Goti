@@ -96,6 +96,7 @@ public class DriverLoginActivity extends AppCompatActivity {
         });
     }
 
+
     @Override
     protected void onStart(){
         super.onStart();
@@ -108,3 +109,4 @@ public class DriverLoginActivity extends AppCompatActivity {
         mAuth.removeAuthStateListener(firebaseAuthListener);
     }
 }
+
