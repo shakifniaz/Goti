@@ -5,10 +5,10 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/get_started_bg2"
     android:orientation="vertical"
     android:padding="20sp"
-    tools:context=".CustomerSettingsActivity">
+    tools:context=".CustomerSettingsActivity"
+    android:background="#242424">
 
     <ImageView
         android:id="@+id/profileImage"
