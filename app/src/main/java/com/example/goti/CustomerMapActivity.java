@@ -18,6 +18,7 @@ import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
 import com.firebase.geofire.GeoQueryEventListener;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -32,6 +33,9 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -39,6 +43,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -49,31 +54,33 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     private LocationCallback locationCallback;
     private boolean firstLocationUpdate = true;
     private Location lastLocation;
-
     private Button mLogout, mRequest, mSettings;
     private LatLng pickupLocation;
     private DatabaseReference customerRequestRef;
     private DatabaseReference driversAvailableRef;
     private DatabaseReference driversWorkingRef;
     private GeoFire geoFire;
-
     private enum RideState { NONE, REQUESTING, DRIVER_ASSIGNED }
     private RideState currentRideState = RideState.NONE;
-
     private int radius = 1;
     private boolean driverFound = false;
     private String driverFoundID;
     private Marker mDriverMarker;
     private Marker pickupMarker;
-
     private GeoQuery geoQuery;
     private DatabaseReference driverLocationRef;
     private ValueEventListener driverLocationRefListener;
+    private String destination;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_customer_map);
+
+        // Initialize Places API
+        if (!Places.isInitialized()) {
+            Places.initialize(getApplicationContext(), "YOUR_API_KEY"); // Replace with your API key
+        }
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -115,6 +122,26 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                 case DRIVER_ASSIGNED:
                     cancelRideRequest();
                     break;
+            }
+        });
+
+        // Initialize PlaceAutocompleteFragment for destination input
+        AutocompleteSupportFragment autocompleteFragment =
+                (AutocompleteSupportFragment) getSupportFragmentManager()
+                        .findFragmentById(R.id.autocomplete_fragment);
+
+        autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
+        autocompleteFragment.setOnPlaceSelectedListener(new com.google.android.libraries.places.widget.listener.PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                // Handle place selection (set destination)
+                destination = place.getName();
+                Log.d("PlaceSelected", "Place: " + place.getName());
+            }
+
+            @Override
+            public void onError(Status status) {
+                Log.e("PlaceError", "Error: " + status);
             }
         });
     }
@@ -191,10 +218,11 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
                     // Assign this customer to the driver
                     DatabaseReference driverRef = FirebaseDatabase.getInstance()
-                            .getReference("Users").child("Drivers").child(driverFoundID);
+                            .getReference("Users").child("Drivers").child(driverFoundID).child("customerRequest");
 
                     HashMap<String, Object> map = new HashMap<>();
                     map.put("customerRideID", FirebaseAuth.getInstance().getCurrentUser().getUid());
+                    map.put("destination", destination);
 
                     driverRef.updateChildren(map).addOnCompleteListener(task -> {
                         if (task.isSuccessful()) {
@@ -321,129 +349,114 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(CustomerMapActivity.this,
-                        "Failed to retrieve driver location!",
-                        Toast.LENGTH_SHORT).show();
+                Log.e("DriverLocation", "Error: " + error.getMessage());
             }
         });
     }
 
     private void cancelRideRequest() {
-        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        if (driverFoundID != null && !driverFoundID.isEmpty()) {
+            DatabaseReference driverRef = FirebaseDatabase.getInstance()
+                    .getReference("Users").child("Drivers").child(driverFoundID).child("customerRequest");
 
-        // Clean up GeoQuery
+            driverRef.removeValue();
+        }
+
         if (geoQuery != null) {
             geoQuery.removeAllListeners();
-            geoQuery = null;
-        }
-
-        // Clean up driver location listener
-        if (driverLocationRef != null && driverLocationRefListener != null) {
-            driverLocationRef.removeEventListener(driverLocationRefListener);
-            driverLocationRefListener = null;
-        }
-
-        // Remove from CustomerRequest
-        geoFire.removeLocation(userID);
-
-        // Reset driver assignment if one was found
-        if (driverFoundID != null) {
-            DatabaseReference driverRef = FirebaseDatabase.getInstance()
-                    .getReference("Users").child("Drivers").child(driverFoundID);
-            driverRef.child("customerRideID").removeValue();
-            driverFoundID = null;
-        }
-
-        // Clean up markers
-        if (pickupMarker != null) {
-            pickupMarker.remove();
-            pickupMarker = null;
         }
 
         if (mDriverMarker != null) {
             mDriverMarker.remove();
-            mDriverMarker = null;
         }
 
-        // Reset state
-        driverFound = false;
+        if (pickupMarker != null) {
+            pickupMarker.remove();
+        }
+
         radius = 1;
+        driverFound = false;
+        driverFoundID = "";
         currentRideState = RideState.NONE;
+
         mRequest.setText("Request Ride");
     }
 
     private void resetRideRequest() {
         currentRideState = RideState.NONE;
         mRequest.setText("Request Ride");
-        mRequest.setEnabled(true);
     }
 
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mMap.setMyLocationEnabled(true);
-            setupLocationUpdates();
-        } else {
-            requestLocationPermissions();
+    private void requestLocationPermissions() {
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
     }
 
-    private void setupLocationUpdates() {
-        LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
-                .setWaitForAccurateLocation(false)
-                .setMinUpdateIntervalMillis(1000)
-                .setMaxUpdateDelayMillis(100)
-                .build();
+    @Override
+    public void onMapReady(@NonNull GoogleMap googleMap) {
+        mMap = googleMap;
 
+        // Enable the My Location layer to show user's current location on the map
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        mMap.setMyLocationEnabled(true);
+
+        // Initialize the FusedLocationProviderClient to request location updates
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
+        // Create LocationRequest to set parameters like accuracy and interval
+        LocationRequest locationRequest = LocationRequest.create();
+        locationRequest.setPriority(Priority.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setInterval(10000); // Update location every 10 seconds
+        locationRequest.setFastestInterval(5000); // Fastest update interval
+
+        // Create a LocationCallback to handle location updates
         locationCallback = new LocationCallback() {
             @Override
-            public void onLocationResult(@NonNull LocationResult locationResult) {
-                if (locationResult.getLastLocation() != null) {
-                    lastLocation = locationResult.getLastLocation();
-                    LatLng latLng = new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude());
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult != null && locationResult.getLocations().size() > 0) {
+                    Location location = locationResult.getLastLocation();
+                    if (location != null) {
+                        lastLocation = location; // Store the last location
+                        LatLng userLocation = new LatLng(location.getLatitude(), location.getLongitude());
 
-                    if (firstLocationUpdate) {
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18));
-                        firstLocationUpdate = false;
+                        // Move the camera to the user's current location
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 15));
+
+                        // You can also set a marker for the user's location
+                        if (pickupMarker == null) {
+                            pickupMarker = mMap.addMarker(new MarkerOptions().position(userLocation).title("Your Location"));
+                        }
                     }
                 }
             }
         };
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, getMainLooper());
+        // Request location updates
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
         }
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
     }
 
-    private void requestLocationPermissions() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 1) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                if (mMap != null) {
-                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                        return;
-                    }
-                    mMap.setMyLocationEnabled(true);
-                    setupLocationUpdates();
-                }
-            }
-        }
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if (fusedLocationProviderClient != null && locationCallback != null) {
-            fusedLocationProviderClient.removeLocationUpdates(locationCallback);
-        }
-    }
 }

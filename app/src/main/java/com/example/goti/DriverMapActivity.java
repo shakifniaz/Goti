@@ -62,7 +62,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     private ValueEventListener assignedCustomerPickupLocationRefListener;
     private LinearLayout mCustomerInfo;
     private ImageView mCustomerProfileImage;
-    private TextView mCustomerName, mCustomerPhone;
+    private TextView mCustomerName, mCustomerPhone, mCustomerDestination;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +88,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
 
         mCustomerName = findViewById(R.id.customerName);
         mCustomerPhone = findViewById(R.id.customerPhone);
+        mCustomerDestination = findViewById(R.id.customerDestination);
 
         mLogout = findViewById(R.id.logout);
         mLogout.setOnClickListener(v -> {
@@ -115,7 +116,8 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     private void getAssignedCustomer() {
         String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         assignedCustomerRef = FirebaseDatabase.getInstance()
-                .getReference().child("Users").child("Drivers").child(driverId).child("customerRideID");
+                .getReference().child("Users").child("Drivers").child(driverId).
+                child("customerRequest").child("customerRideID");
 
         assignedCustomerRef.addValueEventListener(new ValueEventListener() {
             @Override
@@ -125,6 +127,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     if (customerID != null && !customerID.isEmpty()) {
                         getAssignedCustomerPickupLocation();
                         getAssignedCustomerInfo();
+                        getAssignedCustomerDestination();
                     } else {
                         customerID = "";
                         removePickupMarkerAndListener();
@@ -135,8 +138,33 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     mCustomerInfo.setVisibility(View.GONE);
                     mCustomerName.setText("");
                     mCustomerPhone.setText("");
+                    mCustomerDestination.setText("Destination: --");
                     mCustomerProfileImage.setImageResource(R.drawable.account_circle_24);
 
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e("DriverAssign", "Error checking assigned customer", databaseError.toException());
+            }
+        });
+    }
+
+    private void getAssignedCustomerDestination(){
+        String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        assignedCustomerRef = FirebaseDatabase.getInstance()
+                .getReference().child("Users").child("Drivers").child(driverId).
+                child("customerRequest").child("destination");
+
+        assignedCustomerRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    String destination = dataSnapshot.getValue().toString();
+                    mCustomerDestination.setText("Destination: " + destination);
+                } else {
+                    mCustomerDestination.setText("Destination: --");
                 }
             }
 
@@ -218,7 +246,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         mCustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
+                if (snapshot.exists() && snapshot.getChildrenCount()>0) {
                     // Get name if exists
                     if (snapshot.hasChild("name")) {
                         mCustomerName.setText(snapshot.child("name").getValue(String.class));
