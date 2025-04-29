@@ -40,7 +40,7 @@
                 android:fontFamily="@font/line_seed_sans_bd"
                 android:text="@string/sign"
                 android:textColor="@color/purple_text"
-                android:textSize="43sp" />
+                android:textSize="35sp" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -49,74 +49,79 @@
                 android:layout_marginTop="4dp"
                 android:text="@string/loginacc"
                 android:textColor="@color/purple_text"
-                android:textSize="16sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:layout_width="330dp"
+                android:layout_width="300dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="40dp"
-                android:paddingStart="10dp"
+                android:paddingStart="5dp"
                 android:text="@string/email"
                 android:textColor="@color/white"
                 android:textSize="16sp" />
 
             <EditText
                 android:id="@+id/email"
-                android:layout_width="330dp"
+                android:layout_width="300dp"
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:background="@drawable/border2"
                 android:drawableStart="@drawable/baseline_email_24"
+                android:drawablePadding="5dp"
                 android:hint=" Type your email :"
                 android:inputType="text"
                 android:paddingStart="12dp"
                 android:textColorHint="@color/purple_text"
                 android:textSize="16sp"
-                tools:ignore="TextFields" />
+                tools:ignore="TextFields"
+                android:textColor="@color/black"/>
 
             <TextView
-                android:layout_width="330dp"
+                android:layout_width="300dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="18dp"
-                android:paddingLeft="10dp"
+                android:paddingLeft="5dp"
                 android:text="Password"
                 android:textColor="@color/white"
                 android:textSize="16sp" />
 
             <EditText
                 android:id="@+id/password"
-                android:layout_width="330dp"
+                android:layout_width="300dp"
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:background="@drawable/border2"
                 android:drawableLeft="@drawable/finalpasslock"
+                android:drawablePadding="5dp"
                 android:hint=" Type your password : "
                 android:inputType="textPassword"
                 android:paddingLeft="12dp"
                 android:textColorHint="@color/purple_text"
+                android:textColor="@color/black"
                 android:textSize="16sp" />
 
             <TextView
-                android:layout_width="330dp"
+                android:layout_width="300dp"
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="5dp"
                 android:id="@+id/forgotpassword"
+                android:fontFamily="@font/montserrat_regular"
                 android:clickable="true"
-                android:paddingLeft="189dp"
+                android:paddingLeft="169dp"
                 android:text="Forgot Password? "
                 android:textColor="@color/purple_text"
-                android:textSize="15sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <!-- Fixed Button Here -->
             <Button
                 android:id="@+id/loginButton"
-                android:layout_width="330dp"
-                android:layout_height="59dp"
+                android:layout_width="300dp"
+                android:layout_height="50dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/button"
@@ -124,7 +129,7 @@
                 android:fontFamily="@font/montserrat_bold"
                 android:textAllCaps="true"
                 android:textColor="@color/white"
-                android:textSize="25sp" />
+                android:textSize="18sp" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -137,7 +142,8 @@
                     android:layout_height="wrap_content"
                     android:text="Don't have an account?"
                     android:textColor="@color/white"
-                    android:textSize="19sp"
+                    android:fontFamily="@font/montserrat_regular"
+                    android:textSize="14sp"
                     android:textStyle="normal" />
 
                 <TextView
@@ -146,12 +152,12 @@
                     android:layout_height="48dp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:paddingLeft="10dp"
+                    android:paddingLeft="5dp"
                     android:text="Register Now!"
+                    android:fontFamily="@font/montserrat_regular"
                     android:textAllCaps="true"
                     android:textColor="@color/purple_text"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:textSize="14sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
