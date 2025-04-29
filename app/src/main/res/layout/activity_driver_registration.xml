@@ -22,8 +22,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="15dp">
+            android:orientation="vertical">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -39,7 +38,7 @@
                 android:id="@+id/name"
                 android:layout_width="330dp"
                 android:layout_height="48dp"
-                android:layout_marginTop="40dp"
+                android:layout_marginTop="30dp"
                 android:layout_gravity="center"
                 android:drawableStart="@drawable/account_white"
                 android:hint=" Full Name"
@@ -54,7 +53,7 @@
                 android:id="@+id/email"
                 android:layout_width="330dp"
                 android:layout_height="48dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="1dp"
                 android:layout_gravity="center"
                 android:drawableStart="@drawable/emaill"
                 android:hint=" Email Address"
@@ -69,7 +68,7 @@
                 android:id="@+id/password"
                 android:layout_width="330dp"
                 android:layout_height="48dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="1dp"
                 android:layout_gravity="center"
                 android:drawableLeft="@drawable/passwhite"
                 android:hint=" Password"
@@ -83,7 +82,7 @@
                 android:id="@+id/password_confirm"
                 android:layout_width="330dp"
                 android:layout_height="48dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="1dp"
                 android:layout_gravity="center"
                 android:drawableLeft="@drawable/passwhite"
                 android:hint=" Confirm Password"
@@ -97,7 +96,7 @@
                 android:id="@+id/nid_driver"
                 android:layout_width="330dp"
                 android:layout_height="48dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="1dp"
                 android:layout_gravity="center"
                 android:drawableLeft="@drawable/id_cardd"
                 android:hint=" NID Number"
@@ -111,7 +110,7 @@
                 android:id="@+id/licence_driver"
                 android:layout_width="330dp"
                 android:layout_height="48dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="1dp"
                 android:layout_gravity="center"
                 android:drawableLeft="@drawable/id_cardd"
                 android:hint=" License Number"
@@ -125,7 +124,7 @@
                 android:id="@+id/dob"
                 android:layout_width="330dp"
                 android:layout_height="48dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="1dp"
                 android:layout_gravity="center"
                 android:drawableLeft="@drawable/baseline_calendar_month_24"
                 android:hint=" Date of Birth"
@@ -139,7 +138,7 @@
                 android:id="@+id/phone"
                 android:layout_width="330dp"
                 android:layout_height="48dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="1dp"
                 android:layout_gravity="center"
                 android:drawableLeft="@drawable/baseline_add_call_24"
                 android:hint=" Phone Number"
@@ -154,7 +153,7 @@
                 android:id="@+id/genderGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="1dp"
                 android:layout_gravity="center"
                 android:gravity="center"
                 android:orientation="horizontal">
@@ -181,10 +180,10 @@
             </RadioGroup>
 
             <Button
-                android:id="@+id/loginButton"
-                android:layout_width="330dp"
+                android:id="@+id/registerButton"
+                android:layout_width="280dp"
                 android:layout_height="63dp"
-                android:layout_marginTop="35dp"
+                android:layout_marginTop="14dp"
                 android:layout_gravity="center"
                 android:background="@drawable/button"
                 android:fontFamily="@font/montserrat_bold"
@@ -198,7 +197,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_marginTop="20dp">
+                android:layout_marginTop="10dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -206,7 +205,7 @@
                     android:fontFamily="@font/line_seed_sans_bd"
                     android:text="Already have an account?"
                     android:textColor="@color/white"
-                    android:textSize="18sp"
+                    android:textSize="15sp"
                     android:textStyle="normal" />
 
                 <TextView
@@ -220,7 +219,7 @@
                     android:fontFamily="@font/montserrat_bold"
                     android:textAllCaps="true"
                     android:textColor="@color/purple_text"
-                    android:textSize="18sp" />
+                    android:textSize="15sp" />
             </LinearLayout>
 
         </LinearLayout>

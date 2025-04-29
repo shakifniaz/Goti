@@ -141,7 +141,7 @@
 
         <Button
             android:id="@+id/registerButton"
-            android:layout_width="330dp"
+            android:layout_width="280dp"
             android:layout_height="63dp"
             android:layout_marginTop="35dp"
             android:background="@drawable/button"
@@ -164,7 +164,7 @@
                 android:layout_height="48dp"
                 android:text="Already have an account?"
                 android:textColor="@color/white"
-                android:textSize="18sp" />
+                android:textSize="15sp" />
 
             <TextView
                 android:id="@+id/login"
@@ -177,7 +177,7 @@
                 android:fontFamily="@font/montserrat_bold"
                 android:textColor="@color/purple_text"
                 android:textAllCaps="true"
-                android:textSize="18sp" />
+                android:textSize="15sp" />
         </LinearLayout>
 
     </LinearLayout>
