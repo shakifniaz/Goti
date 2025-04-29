@@ -6,7 +6,6 @@
     <string name="sign">Welcome Back</string>
     <string name="loginacc">Login to your account</string>
     <string name="email">Email</string>
-    <string name="type_email"> Type your email : </string>
-
+    <string name="type_email">Type your email:</string>
 
 </resources>

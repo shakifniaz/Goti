@@ -37,28 +37,36 @@ android {
 }
 
 dependencies {
-
+    // AndroidX
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
+
+    // Firebase (let BOM manage versions)
     implementation(platform("com.google.firebase:firebase-bom:33.11.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-database")
-    implementation("com.google.android.gms:play-services-location:21.0.1")
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.firebase:firebase-storage") // Optional (only if needed)
+
+    // GeoFire
     implementation("com.firebase:geofire-android:3.2.0")
     implementation("com.firebase:geofire-android-common:3.2.0")
-    implementation("com.google.firebase:firebase-auth:22.3.1")
-    implementation("com.google.firebase:firebase-database:20.3.0")
-    implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    // Google Play Services
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.libraries.places:places:3.3.0")
-    implementation("com.android.support:design:28.0.0")
-    implementation("com.android.support:cardview-v7:28.0.0")
-    implementation(libs.play.services.maps)
-    implementation(libs.firebase.storage)
+
+    // Glide (Image Loading)
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0") // Required for Glide
+
+    // Material Components (AndroidX replacement for old design support lib)
+    implementation("com.google.android.material:material:1.11.0")
+
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

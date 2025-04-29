@@ -79,7 +79,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
         // Initialize Places API
         if (!Places.isInitialized()) {
-            Places.initialize(getApplicationContext(), "YOUR_API_KEY"); // Replace with your API key
+            Places.initialize(getApplicationContext(), "AIzaSyBBeBYZWT8XKIvKWONhScmwWRWpNdA_7jA"); // Replace with your API key
         }
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
