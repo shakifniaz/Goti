@@ -2,6 +2,7 @@ package com.example.goti;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -40,11 +41,14 @@ public class LoginActivity extends AppCompatActivity {
             String password = mPassword.getText().toString();
 
             if (!email.isEmpty() && !password.isEmpty()) {
+                Log.i("TEST", "EMAIL: " + email + "PASS:" + password);
                 mAuth.signInWithEmailAndPassword(email, password)
                         .addOnCompleteListener(this, task -> {
                             if (task.isSuccessful()) {
                                 checkUserType(mAuth.getCurrentUser().getUid());
                             } else {
+                                Exception e = task.getException();
+                                Log.e("TEST", "Authentication failed", e);
                                 Toast.makeText(LoginActivity.this, "Authentication failed.", Toast.LENGTH_SHORT).show();
                             }
                         });
