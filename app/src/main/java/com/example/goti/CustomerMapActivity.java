@@ -438,6 +438,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                     Log.e("CancelRide", "Error removing request", e);
                     Toast.makeText(this, "Failed to cancel ride", Toast.LENGTH_SHORT).show();
                 });
+
     }
 
     private void clearDriverAssignment() {
@@ -446,6 +447,13 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                     .getReference("Users/Drivers/" + driverFoundID + "/customerRequest");
             driverRef.removeValue();
         }
+
+        mDriverInfo.setVisibility(View.GONE);
+        mDriverName.setText("");
+        mDriverPhone.setText("");
+        mDriverCar.setText("");
+        mDriverProfileImage.setImageResource(R.drawable.account_circle_24);
+
         cleanupRide();
     }
 
