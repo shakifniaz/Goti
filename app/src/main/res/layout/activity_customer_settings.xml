@@ -7,16 +7,18 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context=".CustomerSettingsActivity"
-    android:background="@color/white">
+    android:background="@drawable/bg14">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/new_color"
+        android:background="@drawable/border5"
         android:text="User Profile"
         android:textColor="@color/white"
         android:textSize="26sp"
         android:padding="9dp"
+        android:gravity="center"
+        android:textAlignment="center"
         android:paddingLeft="10dp"/>
     <ImageView
         android:id="@+id/profileImage"
@@ -25,7 +27,8 @@
         android:layout_gravity="center"
         android:layout_marginTop="65dp"
         android:layout_marginBottom="20sp"
-        android:src="@drawable/baseline_account_circle_24" />
+        android:src="@drawable/baseline_account_circle_24"
+       />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -48,12 +51,12 @@
                 android:id="@+id/name"
                 android:layout_width="240dp"
                 android:layout_height="43dp"
-                android:background="@drawable/border4"
+                android:background="@drawable/border2"
                 android:hint="Your Name"
                 android:paddingLeft="16dp"
-                android:textColorHint="#616161"
+                android:textColorHint="@color/new_color"
                 android:textSize="16dp"
-                android:textColor="@color/black"/>
+                android:textColor="@color/new_color"/>
         </LinearLayout>
         <LinearLayout
             android:layout_width="wrap_content"
@@ -69,12 +72,12 @@
                 android:id="@+id/dob"
                 android:layout_width="240dp"
                 android:layout_height="43dp"
-                android:background="@drawable/border4"
+                android:background="@drawable/border2"
                 android:hint="Your Date Of Birth"
                 android:paddingLeft="16dp"
-                android:textColorHint="#616161"
+                android:textColorHint="@color/new_color"
                 android:textSize="16dp"
-                android:textColor="@color/black"/>
+                android:textColor="@color/new_color"/>
         </LinearLayout>
         <LinearLayout
             android:layout_width="wrap_content"
@@ -90,12 +93,12 @@
                 android:id="@+id/customerPhone"
                 android:layout_width="240dp"
                 android:layout_height="43dp"
-                android:background="@drawable/border4"
+                android:background="@drawable/border2"
                 android:hint="Your Phone Number"
                 android:paddingLeft="16dp"
-                android:textColorHint="#616161"
+                android:textColorHint="@color/new_color"
                 android:textSize="16dp"
-                android:textColor="@color/black"/>
+                android:textColor="@color/new_color"/>
         </LinearLayout>
         <LinearLayout
             android:layout_width="wrap_content"
@@ -111,12 +114,12 @@
                 android:id="@+id/address"
                 android:layout_width="240dp"
                 android:layout_height="43dp"
-                android:background="@drawable/border4"
+                android:background="@drawable/border2"
                 android:hint="Your Address"
                 android:paddingLeft="16dp"
-                android:textColorHint="#616161"
+                android:textColorHint="@color/new_color"
                 android:textSize="16dp"
-                android:textColor="@color/black"/>
+                android:textColor="@color/new_color"/>
         </LinearLayout>
         <LinearLayout
             android:layout_width="wrap_content"
@@ -137,7 +140,7 @@
                 android:layout_width="150dp"
                 android:layout_height="55dp"
                 android:layout_marginStart="10dp"
-                android:background="@drawable/button2"
+                android:background="@drawable/button"
                 android:fontFamily="@font/montserrat_bold"
                 android:text="Confirm"
                 android:textColor="@color/white"
