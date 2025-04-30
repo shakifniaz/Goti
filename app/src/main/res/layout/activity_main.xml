@@ -21,7 +21,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/get_started_bg2" />
+            app:srcCompat="@drawable/bg1" />
 
         <ImageView
             android:id="@+id/logo"
@@ -32,7 +32,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/logo_white" />
+            app:srcCompat="@drawable/logonew" />
 
         <TextView
             android:id="@+id/textView2"
@@ -41,7 +41,7 @@
             android:fontFamily="@font/line_seed_sans_xbd"
             android:text="GOTI APP"
             android:textAlignment="center"
-            android:textColor="#E7E7E7"
+            android:textColor="@color/new_color"
             android:textSize="45sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"

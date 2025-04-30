@@ -7,4 +7,6 @@
     <color name="text">#000000</color>
     <color name="purple_text">#D569F6</color>
     <color name="app_bg">#1D1D1D</color>
+    <color name="new_color">#6C38B1</color>
+
 </resources>
