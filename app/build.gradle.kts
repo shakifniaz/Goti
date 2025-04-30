@@ -50,16 +50,9 @@ dependencies {
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-storage") // Optional (only if needed)
 
-    // Google Direction Library
-    implementation ("com.akexorcist:google-direction-library:1.2.1")
-
     // GeoFire
     implementation("com.firebase:geofire-android:3.2.0")
     implementation("com.firebase:geofire-android-common:3.2.0")
-
-    // UI Components
-    implementation ("com.ncorti:slidetoact:0.9.0")
-    implementation ("com.lorentzos.swipecards:library:1.0.9")
 
     // Google Play Services
     implementation("com.google.android.gms:play-services-location:21.0.1")
