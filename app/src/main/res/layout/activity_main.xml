@@ -66,7 +66,7 @@
                 android:fontFamily="@font/line_seed_sans_bd"
                 android:text="Welcome"
                 android:textAlignment="center"
-                android:textColor="#D569F6"
+                android:textColor="@color/new_color"
                 android:textSize="45sp"
                 android:textStyle="bold" />
 

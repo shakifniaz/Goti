@@ -131,7 +131,7 @@
                 android:layout_gravity="center"
                 android:layout_marginTop="34dp"
                 android:layout_marginBottom="20dp"
-                android:background="@drawable/border"
+                android:background="@drawable/button"
                 android:text="@string/login"
                 android:fontFamily="@font/montserrat_bold"
                 android:textAllCaps="true"
@@ -160,7 +160,7 @@
                 android:layout_height="wrap_content"
                 android:text="Don't have an account?"
                 android:textColor="@color/black"
-                android:fontFamily="@font/montserrat_regular"
+                android:fontFamily="@font/montserrat_semibold"
                 android:textSize="12sp"
                 android:textStyle="normal" />
 
@@ -172,7 +172,7 @@
                 android:focusable="true"
                 android:paddingLeft="5dp"
                 android:text="Register Now!"
-                android:fontFamily="@font/montserrat_regular"
+                android:fontFamily="@font/montserrat_semibold"
                 android:textAllCaps="true"
                 android:textColor="@color/new_color"
                 android:textSize="12sp" />
