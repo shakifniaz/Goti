@@ -52,7 +52,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     private DatabaseReference assignedCustomerRef;
     private GeoFire geoFire;
     private String userID;
-    private Button mLogout;
+    private Button mLogout, mSettings;
     private String customerID = "";
     private Marker pickupMarker, destinationMarker;
     private DatabaseReference assignedCustomerPickupLocationRef;
@@ -75,6 +75,17 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
         driverLocationRef = FirebaseDatabase.getInstance().getReference("driversAvailable");
         geoFire = new GeoFire(driverLocationRef);
+
+        mSettings = findViewById(R.id.settings);
+        mSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(DriverMapActivity.this, DriverSettingsActivity.class);
+                startActivity(intent);
+                finish();
+                return;
+            }
+        });
 
         requestLocationPermissions();
         initializeViews();
@@ -99,6 +110,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             finish();
         });
     }
+
 
     private void setupCustomerAssignmentListener() {
         assignedCustomerRef = FirebaseDatabase.getInstance()
@@ -347,6 +359,22 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             geoFireWorking.removeLocation(userID);
         }
     }
+
+//    final int LOCATION_REQUEST_CODE = 1;
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults, int deviceId) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults, deviceId);
+//        switch(requestCode){
+//            case LOCATION_REQUEST_CODE:{
+//                if(grantResults.length > 0 && grantResults(0) == PackageManager.PERMISSION_GRANTED){
+//                    mapFragment.getMapAsync(this);
+//                } else{
+//                    Toast.makeText(getApplicationContext(), "Please provide the permission", Toast.LENGTH_LONG).show();
+//                }
+//                break;
+//            }
+//        }
+//    }
 
     @Override
     protected void onDestroy() {

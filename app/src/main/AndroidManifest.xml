@@ -16,13 +16,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Goti"
         tools:targetApi="31">
-
+        <activity
+            android:name=".DriverSettingsActivity"
+            android:exported="false" />
         <!-- New Activities Added -->
         <activity android:name=".LoginActivity" />
         <activity android:name=".CustomerRegistrationActivity" />
-        <activity android:name=".DriverRegistrationActivity" />
-
-        <!-- Existing Activities -->
+        <activity android:name=".DriverRegistrationActivity" /> <!-- Existing Activities -->
         <activity
             android:name=".CustomerSettingsActivity"
             android:exported="false" />
@@ -38,18 +38,18 @@
             android:name=".DriverMapActivity"
             android:exported="false"
             android:label="Driver Map Activity" />
-
         <activity
             android:name=".MapActivity"
             android:exported="false" />
-
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
     </application>
+
 </manifest>
