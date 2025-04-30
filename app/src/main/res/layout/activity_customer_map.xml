@@ -73,8 +73,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingLeft="40sp"
-                android:visibility="gone">
+                android:paddingLeft="40sp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -101,11 +100,45 @@
                     android:paddingTop="20sp"/>
             </LinearLayout>
         </LinearLayout>
-        <Button
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Request Ride"
-            android:id="@+id/request" />
+            android:background="@color/white"
+            android:orientation="vertical">
+            <RadioGroup
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/radioGroup"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/GotiX"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GotiX"
+                    android:textColor="@color/black"/>
+                <RadioButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GotiBlack"
+                    android:id="@+id/GotiBlack"
+                    android:textColor="@color/black"/>
+                <RadioButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GotiXl"
+                    android:id="@+id/GotiXl"
+                    android:textColor="@color/black"/>
+            </RadioGroup>
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Request Ride"
+                android:id="@+id/request" />
+        </LinearLayout>
+
     </LinearLayout>
 
 

@@ -10,6 +10,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -45,11 +47,12 @@ public class DriverSettingsActivity extends AppCompatActivity {
     private Button mBack, mConfirm;
     private ImageView mProfileImage;
     private FirebaseAuth mAuth;
-    private DatabaseReference mDriverrDatabase;
+    private DatabaseReference mDriverDatabase;
     private String userID;
+    private String mService;
     private Uri resultUri;
+    private RadioGroup mRadioGroup;
     private static final int PICK_IMAGE_REQUEST = 1;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,23 +65,21 @@ public class DriverSettingsActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Initialize views
         mNameField = findViewById(R.id.name);
         mPhoneField = findViewById(R.id.phone);
         nCarField = findViewById(R.id.car);
         mProfileImage = findViewById(R.id.profileImage);
         mBack = findViewById(R.id.back);
         mConfirm = findViewById(R.id.confirm);
+        mRadioGroup = findViewById(R.id.radioGroup);
 
-        // Initialize Firebase
         mAuth = FirebaseAuth.getInstance();
         userID = mAuth.getCurrentUser().getUid();
-        mDriverrDatabase = FirebaseDatabase.getInstance().getReference()
+        mDriverDatabase = FirebaseDatabase.getInstance().getReference()
                 .child("Users")
                 .child("Drivers")
                 .child(userID);
 
-        // Load user info
         getUserInfo();
 
         mProfileImage.setOnClickListener(v -> {
@@ -87,32 +88,41 @@ public class DriverSettingsActivity extends AppCompatActivity {
             startActivityForResult(intent, PICK_IMAGE_REQUEST);
         });
 
-        // Set click listeners
         mConfirm.setOnClickListener(v -> saveUserInformation());
         mBack.setOnClickListener(v -> finish());
     }
 
     private void getUserInfo() {
-        mDriverrDatabase.addValueEventListener(new ValueEventListener() {
+        mDriverDatabase.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
-                    // Get name if exists
                     if (snapshot.hasChild("name")) {
                         String name = snapshot.child("name").getValue(String.class);
                         mNameField.setText(name);
                     }
-                    // Get phone if exists
                     if (snapshot.hasChild("phone")) {
                         String phone = snapshot.child("phone").getValue(String.class);
                         mPhoneField.setText(phone);
                     }
-                    // Get car if exists
                     if (snapshot.hasChild("car")) {
                         String car = snapshot.child("car").getValue(String.class);
                         nCarField.setText(car);
                     }
-                    // Get profile image if exists
+                    if (snapshot.hasChild("service")) {
+                        mService = snapshot.child("service").getValue(String.class);
+                        switch (mService) {
+                            case "GotiX":
+                                mRadioGroup.check(R.id.GotiX);
+                                break;
+                            case "GotiBlack":
+                                mRadioGroup.check(R.id.GotiBlack);
+                                break;
+                            case "GotiXl":
+                                mRadioGroup.check(R.id.GotiXl);
+                                break;
+                        }
+                    }
                     if (snapshot.hasChild("profileImageUrl")) {
                         String profileImageUrl = snapshot.child("profileImageUrl").getValue(String.class);
                         Glide.with(DriverSettingsActivity.this)
@@ -136,7 +146,16 @@ public class DriverSettingsActivity extends AppCompatActivity {
         String phone = mPhoneField.getText().toString().trim();
         String car = nCarField.getText().toString().trim();
 
-        // Validate inputs
+        int selectID = mRadioGroup.getCheckedRadioButtonId();
+        final RadioButton radioButton = findViewById(selectID);
+
+        if (radioButton == null || radioButton.getText() == null) {
+            Toast.makeText(this, "Please select a service type", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        mService = radioButton.getText().toString();
+
         if (name.isEmpty()) {
             mNameField.setError("Name is required");
             mNameField.requestFocus();
@@ -156,34 +175,28 @@ public class DriverSettingsActivity extends AppCompatActivity {
         }
 
         if (resultUri != null) {
-            // If new image is selected, upload it first
             uploadProfileImage(name, phone, car);
         } else {
-            // If no new image, just update text data
-            updateUserData(name, phone, car,null);
+            updateUserData(name, phone, car, null);
         }
     }
 
     private void uploadProfileImage(String name, String phone, String car) {
-        // Get reference to Firebase Storage
         StorageReference filePath = FirebaseStorage.getInstance().getReference()
                 .child("profile_images")
                 .child(userID);
 
         try {
-            // Compress the image
             Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), resultUri);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             bitmap.compress(Bitmap.CompressFormat.JPEG, 20, baos);
             byte[] data = baos.toByteArray();
 
-            // Show loading dialog
             ProgressDialog progressDialog = new ProgressDialog(this);
             progressDialog.setMessage("Uploading profile image...");
             progressDialog.setCancelable(false);
             progressDialog.show();
 
-            // Upload the image
             UploadTask uploadTask = filePath.putBytes(data);
 
             uploadTask.continueWithTask(task -> {
@@ -213,25 +226,30 @@ public class DriverSettingsActivity extends AppCompatActivity {
         userInfo.put("name", name);
         userInfo.put("phone", phone);
         userInfo.put("car", car);
+        userInfo.put("service", mService);
 
         if (profileImageUrl != null) {
             userInfo.put("profileImageUrl", profileImageUrl);
         }
 
-        // Show loading dialog
         ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Saving profile...");
         progressDialog.setCancelable(false);
         progressDialog.show();
 
-        mDriverrDatabase.updateChildren(userInfo)
+        mDriverDatabase.updateChildren(userInfo)
                 .addOnCompleteListener(task -> {
                     progressDialog.dismiss();
                     if (task.isSuccessful()) {
                         Toast.makeText(DriverSettingsActivity.this,
                                 "Profile updated successfully",
                                 Toast.LENGTH_SHORT).show();
-                        finish();
+
+                        // Explicitly start DriverMapActivity
+                        Intent intent = new Intent(DriverSettingsActivity.this, DriverMapActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK); // Optional: Clears the activity stack
+                        startActivity(intent);
+                        finish();  // Finish DriverSettingsActivity to remove it from the stack
                     } else {
                         Toast.makeText(DriverSettingsActivity.this,
                                 "Database error: " + task.getException().getMessage(),

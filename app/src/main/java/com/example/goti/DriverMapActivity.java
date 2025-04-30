@@ -45,6 +45,9 @@ import java.util.List;
 
 public class DriverMapActivity extends FragmentActivity implements OnMapReadyCallback {
 
+    private static final String TAG = "DriverMapActivity";
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationCallback locationCallback;
@@ -66,31 +69,24 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_map);
 
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
-
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-
-        userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        driverLocationRef = FirebaseDatabase.getInstance().getReference("driversAvailable");
-        geoFire = new GeoFire(driverLocationRef);
-
-        mSettings = findViewById(R.id.settings);
-        mSettings.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(DriverMapActivity.this, DriverSettingsActivity.class);
-                startActivity(intent);
-                finish();
-                return;
-            }
-        });
-
-        requestLocationPermissions();
+        // Initialize all views first
         initializeViews();
-        setupLogoutButton();
+
+        // Then setup Firebase
+        setupFirebaseReferences();
+
+        // Then setup map
+        setupMap();
+
+        // Then setup location services
+        setupLocationClient();
+
+        // Then setup listeners
+        setupButtonListeners();
         setupCustomerAssignmentListener();
+
+        // Initialize other variables
+        customerID = "";
     }
 
     private void initializeViews() {
@@ -100,66 +96,136 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         mCustomerPhone = findViewById(R.id.customerPhone);
         mCustomerDestination = findViewById(R.id.customerDestination);
         mLogout = findViewById(R.id.logout);
+        mSettings = findViewById(R.id.settings);
     }
 
-    private void setupLogoutButton() {
-        mLogout.setOnClickListener(v -> {
-            cleanupDriverLocation();
-            FirebaseAuth.getInstance().signOut();
-            startActivity(new Intent(DriverMapActivity.this, MainActivity.class));
+    private void setupFirebaseReferences() {
+        userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        if (userID == null) {
+            Log.e(TAG, "User ID is null, user not authenticated");
             finish();
-        });
+            return;
+        }
+
+        driverLocationRef = FirebaseDatabase.getInstance().getReference("driversAvailable");
+        geoFire = new GeoFire(driverLocationRef);
     }
 
+    private void setupMap() {
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        if (mapFragment != null) {
+            mapFragment.getMapAsync(this);
+        } else {
+            Log.e(TAG, "Map fragment is null");
+            Toast.makeText(this, "Error initializing map", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void setupLocationClient() {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        requestLocationPermissions();
+    }
+
+    private void setupButtonListeners() {
+        mLogout.setOnClickListener(v -> logoutUser());
+        mSettings.setOnClickListener(v -> openSettings());
+    }
+
+    private void logoutUser() {
+        cleanupDriverLocation();
+        FirebaseAuth.getInstance().signOut();
+        startActivity(new Intent(DriverMapActivity.this, MainActivity.class));
+        finish();
+    }
+
+    private void openSettings() {
+        startActivity(new Intent(DriverMapActivity.this, DriverSettingsActivity.class));
+    }
 
     private void setupCustomerAssignmentListener() {
+        if (userID == null) {
+            Log.e(TAG, "User ID is null in setupCustomerAssignmentListener");
+            return;
+        }
+
+        Log.d(TAG, "Setting up customer assignment listener for user: " + userID);
+
         assignedCustomerRef = FirebaseDatabase.getInstance()
                 .getReference("Users/Drivers/" + userID + "/customerRequest/customerRideID");
 
         assignedCustomerRef.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    customerID = dataSnapshot.getValue(String.class);
-                    if (customerID != null && !customerID.isEmpty()) {
-                        showCustomerInfo();
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                try {
+                    Log.d(TAG, "Customer assignment data changed: " + dataSnapshot.toString());
+
+                    if (dataSnapshot.exists()) {
+                        customerID = dataSnapshot.getValue(String.class);
+                        Log.d(TAG, "Customer ID: " + customerID);
+
+                        if (customerID != null && !customerID.isEmpty()) {
+                            showCustomerInfo();
+                        } else {
+                            clearCustomerInfo();
+                        }
                     } else {
                         clearCustomerInfo();
                     }
-                } else {
+                } catch (Exception e) {
+                    Log.e(TAG, "Error in customer assignment listener", e);
                     clearCustomerInfo();
                 }
             }
 
             @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.e("DriverAssign", "Error checking assignment", databaseError.toException());
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Error checking assignment", databaseError.toException());
+                clearCustomerInfo();
             }
         });
     }
 
     private void showCustomerInfo() {
-        getAssignedCustomerPickupLocation();
-        getAssignedCustomerInfo();
-        getAssignedCustomerDestination();
-        mCustomerInfo.setVisibility(View.VISIBLE);
+        try {
+            mCustomerInfo.setVisibility(View.VISIBLE); // Show info panel first
+            getAssignedCustomerPickupLocation();
+            getAssignedCustomerInfo();
+            getAssignedCustomerDestination();
+
+            // Add this to ensure map is ready before adding markers
+            if (mMap != null) {
+                mMap.animateCamera(CameraUpdateFactory.zoomTo(15f));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing customer info", e);
+            clearCustomerInfo();
+        }
     }
 
     private void clearCustomerInfo() {
-        customerID = "";
-        removeAllMarkers();
-        mCustomerInfo.setVisibility(View.GONE);
-        resetCustomerInfoFields();
+        try {
+            customerID = "";
+            removeAllMarkers();
+            mCustomerInfo.setVisibility(View.GONE);
+            resetCustomerInfoFields();
+        } catch (Exception e) {
+            Log.e(TAG, "Error clearing customer info", e);
+        }
     }
 
     private void removeAllMarkers() {
-        if (pickupMarker != null) {
-            pickupMarker.remove();
-            pickupMarker = null;
-        }
-        if (destinationMarker != null) {
-            destinationMarker.remove();
-            destinationMarker = null;
+        try {
+            if (pickupMarker != null) {
+                pickupMarker.remove();
+                pickupMarker = null;
+            }
+            if (destinationMarker != null) {
+                destinationMarker.remove();
+                destinationMarker = null;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error removing markers", e);
         }
     }
 
@@ -171,6 +237,12 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     }
 
     private void getAssignedCustomerPickupLocation() {
+        if (customerID == null || customerID.isEmpty()) {
+            Log.d(TAG, "Customer ID is null or empty");
+            return;
+        }
+
+        // Remove previous listener if exists
         if (assignedCustomerPickupLocationRefListener != null && assignedCustomerPickupLocationRef != null) {
             assignedCustomerPickupLocationRef.removeEventListener(assignedCustomerPickupLocationRefListener);
         }
@@ -181,121 +253,163 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         assignedCustomerPickupLocationRefListener = assignedCustomerPickupLocationRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (!snapshot.exists()) {
-                    return;
-                }
-
                 try {
-                    List<Object> location = (List<Object>) snapshot.getValue();
-                    if (location != null && location.size() >= 2) {
-                        updatePickupMarker(location);
+                    if (!snapshot.exists()) {
+                        Log.d(TAG, "No pickup location data available");
+                        return;
+                    }
+
+                    Object locationObj = snapshot.getValue();
+                    if (locationObj instanceof List) {
+                        List<?> location = (List<?>) locationObj;
+                        if (location.size() >= 2) {
+                            updatePickupMarker((List<Object>) location);
+                        } else {
+                            Log.d(TAG, "Invalid location data format");
+                        }
                     }
                 } catch (Exception e) {
-                    Log.e("PickupLocation", "Error parsing location", e);
+                    Log.e(TAG, "Error parsing pickup location", e);
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e("Firebase", "Error getting pickup location");
+                Log.e(TAG, "Error getting pickup location", error.toException());
             }
         });
     }
 
     private void updatePickupMarker(List<Object> location) {
-        double lat = Double.parseDouble(location.get(0).toString());
-        double lng = Double.parseDouble(location.get(1).toString());
-        LatLng pickupLatLng = new LatLng(lat, lng);
+        try {
+            double lat = Double.parseDouble(location.get(0).toString());
+            double lng = Double.parseDouble(location.get(1).toString());
+            LatLng pickupLatLng = new LatLng(lat, lng);
 
-        if (pickupMarker != null) {
-            pickupMarker.remove();
+            if (pickupMarker != null) {
+                pickupMarker.remove();
+            }
+
+            pickupMarker = mMap.addMarker(new MarkerOptions()
+                    .position(pickupLatLng)
+                    .title("Pickup Location")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+
+            // Ensure map is not null before moving camera
+            if (mMap != null) {
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pickupLatLng, 15));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating pickup marker", e);
         }
-
-        pickupMarker = mMap.addMarker(new MarkerOptions()
-                .position(pickupLatLng)
-                .title("Pickup Location")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
-
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pickupLatLng, 15));
     }
 
     private void getAssignedCustomerInfo() {
+        if (customerID == null || customerID.isEmpty()) return;
+
         DatabaseReference mCustomerDatabase = FirebaseDatabase.getInstance().getReference()
                 .child("Users/Customers/" + customerID);
 
         mCustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    if (snapshot.hasChild("name")) {
-                        mCustomerName.setText(snapshot.child("name").getValue(String.class));
+                try {
+                    if (snapshot.exists()) {
+                        if (snapshot.hasChild("name")) {
+                            mCustomerName.setText(snapshot.child("name").getValue(String.class));
+                        }
+                        if (snapshot.hasChild("phone")) {
+                            mCustomerPhone.setText(snapshot.child("phone").getValue(String.class));
+                        }
+                        if (snapshot.hasChild("profileImageUrl")) {
+                            Glide.with(DriverMapActivity.this)
+                                    .load(snapshot.child("profileImageUrl").getValue(String.class))
+                                    .into(mCustomerProfileImage);
+                        }
                     }
-                    if (snapshot.hasChild("phone")) {
-                        mCustomerPhone.setText(snapshot.child("phone").getValue(String.class));
-                    }
-                    if (snapshot.hasChild("profileImageUrl")) {
-                        Glide.with(DriverMapActivity.this)
-                                .load(snapshot.child("profileImageUrl").getValue(String.class))
-                                .into(mCustomerProfileImage);
-                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error getting customer info", e);
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e("CustomerInfo", "Error: " + error.getMessage());
+                Log.e(TAG, "Error getting customer info", error.toException());
             }
         });
     }
 
     private void getAssignedCustomerDestination() {
+        if (customerID == null || customerID.isEmpty()) return;
+
         DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
                 .getReference("CustomerRequest/" + customerID);
 
         customerRequestRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    String destinationName = dataSnapshot.child("destinationName").getValue(String.class);
-                    mCustomerDestination.setText("Destination: " + destinationName);
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                try {
+                    if (dataSnapshot.exists()) {
+                        String destinationName = dataSnapshot.child("destinationName").getValue(String.class);
+                        if (destinationName != null) {
+                            mCustomerDestination.setText("Destination: " + destinationName);
+                        }
 
-                    List<Object> latLng = (List<Object>) dataSnapshot.child("destinationLatLng").getValue();
-                    if (latLng != null && latLng.size() >= 2) {
-                        updateDestinationMarker(latLng, destinationName);
+                        List<Object> latLng = (List<Object>) dataSnapshot.child("destinationLatLng").getValue();
+                        if (latLng != null && latLng.size() >= 2) {
+                            updateDestinationMarker(latLng, destinationName);
+                        }
                     }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error getting destination", e);
                 }
             }
 
             @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.e("Destination", "Error getting destination", databaseError.toException());
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Error getting destination", databaseError.toException());
             }
         });
     }
 
     private void updateDestinationMarker(List<Object> latLng, String destinationName) {
-        double lat = Double.parseDouble(latLng.get(0).toString());
-        double lng = Double.parseDouble(latLng.get(1).toString());
-        LatLng destination = new LatLng(lat, lng);
+        try {
+            double lat = Double.parseDouble(latLng.get(0).toString());
+            double lng = Double.parseDouble(latLng.get(1).toString());
+            LatLng destination = new LatLng(lat, lng);
 
-        if (destinationMarker != null) {
-            destinationMarker.remove();
+            if (destinationMarker != null) {
+                destinationMarker.remove();
+            }
+
+            destinationMarker = mMap.addMarker(new MarkerOptions()
+                    .position(destination)
+                    .title("Destination: " + (destinationName != null ? destinationName : "Unknown"))
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating destination marker", e);
         }
-
-        destinationMarker = mMap.addMarker(new MarkerOptions()
-                .position(destination)
-                .title("Destination: " + destinationName)
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
     }
 
     @Override
-    public void onMapReady(GoogleMap googleMap) {
+    public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mMap.setMyLocationEnabled(true);
-            setupLocationUpdates();
+            enableMyLocation();
         } else {
+            requestLocationPermissions();
+        }
+    }
+
+    private void enableMyLocation() {
+        try {
+            if (mMap != null) {
+                mMap.setMyLocationEnabled(true);
+                setupLocationUpdates();
+            }
+        } catch (SecurityException e) {
+            Log.e(TAG, "Location permission not granted", e);
             requestLocationPermissions();
         }
     }
@@ -318,38 +432,95 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             }
         };
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+        try {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+            } else {
+                requestLocationPermissions();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting up location updates", e);
         }
     }
 
     private void updateDriverLocation(Location location) {
-        if (location == null || userID == null) return;
+        if (location == null || userID == null || userID.isEmpty()) {
+            Log.d(TAG, "Location or userID is null");
+            return;
+        }
 
-        DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("driversAvailable");
-        DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference("driversWorking");
-        GeoFire geoFireAvailable = new GeoFire(refAvailable);
-        GeoFire geoFireWorking = new GeoFire(refWorking);
+        try {
+            DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("driversAvailable");
+            DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference("driversWorking");
+            GeoFire geoFireAvailable = new GeoFire(refAvailable);
+            GeoFire geoFireWorking = new GeoFire(refWorking);
 
-        if (customerID == null || customerID.isEmpty()) {
-            geoFireWorking.removeLocation(userID);
-            geoFireAvailable.setLocation(userID,
-                    new GeoLocation(location.getLatitude(), location.getLongitude()));
-        } else {
-            geoFireAvailable.removeLocation(userID);
-            geoFireWorking.setLocation(userID,
-                    new GeoLocation(location.getLatitude(), location.getLongitude()));
+            if (customerID == null || customerID.isEmpty()) {
+                // Driver is available
+                geoFireWorking.removeLocation(userID, (key, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error removing from working: " + error.getMessage());
+                    }
+                });
+
+                geoFireAvailable.setLocation(userID,
+                        new GeoLocation(location.getLatitude(), location.getLongitude()),
+                        (key, error) -> {
+                            if (error != null) {
+                                Log.e(TAG, "Error updating available location: " + error.getMessage());
+                            }
+                        });
+            } else {
+                // Driver is working (has a customer)
+                geoFireAvailable.removeLocation(userID, (key, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error removing from available: " + error.getMessage());
+                    }
+                });
+
+                geoFireWorking.setLocation(userID,
+                        new GeoLocation(location.getLatitude(), location.getLongitude()),
+                        (key, error) -> {
+                            if (error != null) {
+                                Log.e(TAG, "Error updating working location: " + error.getMessage());
+                            }
+                        });
+            }
+
+            // Update the map camera to follow the driver
+            if (mMap != null) {
+                LatLng driverLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(driverLatLng));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating driver location", e);
         }
     }
 
     private void requestLocationPermissions() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                enableMyLocation();
+            } else {
+                Toast.makeText(this, "Location permission is required for this app to function properly", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
     private void cleanupDriverLocation() {
-        if (userID != null) {
+        if (userID == null) return;
+
+        try {
             DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("driversAvailable");
             DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference("driversWorking");
             GeoFire geoFireAvailable = new GeoFire(refAvailable);
@@ -357,31 +528,21 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
 
             geoFireAvailable.removeLocation(userID);
             geoFireWorking.removeLocation(userID);
+        } catch (Exception e) {
+            Log.e(TAG, "Error cleaning up driver location", e);
         }
     }
-
-//    final int LOCATION_REQUEST_CODE = 1;
-//    @Override
-//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults, int deviceId) {
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults, deviceId);
-//        switch(requestCode){
-//            case LOCATION_REQUEST_CODE:{
-//                if(grantResults.length > 0 && grantResults(0) == PackageManager.PERMISSION_GRANTED){
-//                    mapFragment.getMapAsync(this);
-//                } else{
-//                    Toast.makeText(getApplicationContext(), "Please provide the permission", Toast.LENGTH_LONG).show();
-//                }
-//                break;
-//            }
-//        }
-//    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         cleanupDriverLocation();
         if (fusedLocationProviderClient != null && locationCallback != null) {
-            fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+            try {
+                fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+            } catch (Exception e) {
+                Log.e(TAG, "Error removing location updates", e);
+            }
         }
         if (assignedCustomerPickupLocationRefListener != null && assignedCustomerPickupLocationRef != null) {
             assignedCustomerPickupLocationRef.removeEventListener(assignedCustomerPickupLocationRefListener);
