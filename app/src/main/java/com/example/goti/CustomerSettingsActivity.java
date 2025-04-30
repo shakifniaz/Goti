@@ -64,7 +64,7 @@ public class CustomerSettingsActivity extends AppCompatActivity {
 
         // Initialize views
         mNameField = findViewById(R.id.name);
-        mPhoneField = findViewById(R.id.phone);
+        mPhoneField = findViewById(R.id.customerPhone);
         mProfileImage = findViewById(R.id.profileImage);
         mBack = findViewById(R.id.back);
         mConfirm = findViewById(R.id.confirm);
