@@ -8,7 +8,7 @@
     android:orientation="vertical"
     android:padding="20sp"
     tools:context=".CustomerSettingsActivity"
-    android:background="#1D1D1D">
+    android:background="@color/app_bg">
 
     <ImageView
         android:id="@+id/profileImage"
