@@ -4,6 +4,7 @@
     <color name="cyan">#087A7A</color>
     <color name="cyan2">#E1FFFF</color>
     <color name="purple_button">#9025B0</color>
+    <color name="text">#000000</color>
     <color name="purple_text">#D569F6</color>
     <color name="app_bg">#1D1D1D</color>
 </resources>
