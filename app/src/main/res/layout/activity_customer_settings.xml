@@ -38,12 +38,13 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="15dp"
             >
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Name : "
-            android:textSize="17dp"
-            android:textColor="@color/new_color"/>
+
+            <TextView
+                android:layout_width="90dp"
+                android:layout_height="wrap_content"
+                android:text="Name : "
+                android:textColor="@color/new_color"
+                android:textSize="17dp" />
         <EditText
             android:id="@+id/name"
             android:layout_width="270dp"
@@ -60,17 +61,17 @@
             android:layout_marginBottom="15dp"
             >
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="90dp"
             android:layout_height="wrap_content"
-            android:text="Name : "
+            android:text="DOB : "
             android:textSize="17dp"
             android:textColor="@color/new_color"/>
         <EditText
-            android:id="@+id/name"
+            android:id="@+id/dob"
             android:layout_width="270dp"
             android:layout_height="48dp"
             android:background="@drawable/border4"
-            android:hint="Your Name"
+            android:hint="Your Date Of Birth"
             android:paddingLeft="16dp"
             android:textColorHint="#616161"
             android:textSize="15dp"/>
@@ -81,17 +82,17 @@
             android:layout_marginBottom="15dp"
             >
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="90dp"
             android:layout_height="wrap_content"
-            android:text="Name : "
+            android:text="Phone : "
             android:textSize="17dp"
             android:textColor="@color/new_color"/>
         <EditText
-            android:id="@+id/name"
+            android:id="@+id/customerPhone"
             android:layout_width="270dp"
             android:layout_height="48dp"
             android:background="@drawable/border4"
-            android:hint="Your Name"
+            android:hint="Your Phone Number"
             android:paddingLeft="16dp"
             android:textColorHint="#616161"
             android:textSize="15dp"/>
@@ -102,42 +103,22 @@
             android:layout_marginBottom="15dp"
             >
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="90dp"
             android:layout_height="wrap_content"
-            android:text="Name : "
+            android:text="Address : "
             android:textSize="17dp"
             android:textColor="@color/new_color"/>
         <EditText
-            android:id="@+id/name"
+            android:id="@+id/address"
             android:layout_width="270dp"
             android:layout_height="48dp"
             android:background="@drawable/border4"
-            android:hint="Your Name"
+            android:hint="Your Address"
             android:paddingLeft="16dp"
             android:textColorHint="#616161"
             android:textSize="15dp"/>
         </LinearLayout>
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="15dp"
-            >
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Name : "
-            android:textSize="17dp"
-            android:textColor="@color/new_color"/>
-        <EditText
-            android:id="@+id/name"
-            android:layout_width="270dp"
-            android:layout_height="48dp"
-            android:background="@drawable/border4"
-            android:hint="Your Name"
-            android:paddingLeft="16dp"
-            android:textColorHint="#616161"
-            android:textSize="15dp"/>
-        </LinearLayout>
+
 
         <LinearLayout
             android:layout_width="wrap_content"
