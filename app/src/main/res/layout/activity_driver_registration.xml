@@ -18,6 +18,13 @@
         android:textColor="@color/new_color"
         android:textSize="40sp"
         android:textStyle="bold" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Registering as a driver"
+        android:layout_gravity="center"
+        android:textColor="@color/new_color"
+        android:fontFamily="@font/montserrat_regular"/>
 
     <LinearLayout
         android:layout_width="match_parent"
