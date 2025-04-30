@@ -461,7 +461,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             return;
         }
 
-        driverLocationRef = driversWorkingRef.child(driverFoundID).child("l");
+        driverLocationRef = FirebaseDatabase.getInstance().getReference("driversWorking").child(driverFoundID).child("l");
 
         if (driverLocationRefListener != null) {
             driverLocationRef.removeEventListener(driverLocationRefListener);
@@ -472,13 +472,17 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (!snapshot.exists()) {
                     Toast.makeText(CustomerMapActivity.this, "Driver location not available!", Toast.LENGTH_SHORT).show();
+                    Log.e("DriverLocation", "Snapshot does not exist at path: " + snapshot.getRef().toString());
                     return;
                 }
 
                 try {
                     List<Object> location = (List<Object>) snapshot.getValue();
                     if (location != null && location.size() >= 2) {
+                        Log.d("DriverLocation", "Driver location updated: " + location.get(0) + ", " + location.get(1));
                         updateDriverMarker(location);
+                    } else {
+                        Log.e("DriverLocation", "Invalid location data format");
                     }
                 } catch (Exception e) {
                     Log.e("LocationParse", "Error parsing location", e);

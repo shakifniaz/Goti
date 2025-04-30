@@ -41,6 +41,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.libraries.places.api.Places;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -79,6 +80,10 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_map);
+        // Add this in onCreate() or before using the Routing library
+        if (!Places.isInitialized()) {
+            Places.initialize(getApplicationContext(), "AIzaSyBBeBYZWT8XKIvKWONhScmwWRWpNdA_7jA");
+        }
 
         polylines = new ArrayList<>();
 
@@ -309,9 +314,11 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     .title("Pickup Location")
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
 
-            getRouteToMarker(pickupLatLng);
+            // Calculate route only if driver's location is available
+            if (mLastLocation != null) {
+                getRouteToMarker(pickupLatLng);
+            }
 
-            // Ensure map is not null before moving camera
             if (mMap != null) {
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pickupLatLng, 15));
             }
@@ -321,11 +328,22 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     }
 
     private void getRouteToMarker(LatLng pickupLatLng) {
+        if (mLastLocation == null || pickupLatLng == null) {
+            Toast.makeText(this, "Location data missing", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Start point (driver's location)
+        LatLng start = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+
+        // End point (customer's pickup location)
+        LatLng end = pickupLatLng;
+
         Routing routing = new Routing.Builder()
                 .travelMode(AbstractRouting.TravelMode.DRIVING)
-                .withListener(this)
+                .withListener(DriverMapActivity.this)
                 .alternativeRoutes(false)
-                .waypoints(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()), pickupLatLng)
+                .waypoints(start, end)
                 .build();
         routing.execute();
     }
@@ -511,8 +529,19 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                         (key, error) -> {
                             if (error != null) {
                                 Log.e(TAG, "Error updating working location: " + error.getMessage());
+                            } else {
+                                Log.d(TAG, "Driver location updated in driversWorking: " + location.getLatitude() + ", " + location.getLongitude());
                             }
                         });
+
+                // Also update the driver's location under driversWorking/{driverId}/l
+                DatabaseReference driverWorkingLocRef = FirebaseDatabase.getInstance().getReference("driversWorking/" + userID + "/l");
+                List<Object> locationList = new ArrayList<>();
+                locationList.add(location.getLatitude());
+                locationList.add(location.getLongitude());
+                driverWorkingLocRef.setValue(locationList)
+                        .addOnSuccessListener(aVoid -> Log.d(TAG, "Driver location updated under driversWorking/l"))
+                        .addOnFailureListener(e -> Log.e(TAG, "Failed to update driver location under driversWorking/l", e));
             }
 
             // Update the map camera to follow the driver
@@ -579,9 +608,10 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
 
     @Override
     public void onRoutingFailure(RouteException e) {
-        if(e != null) {
+        if (e != null) {
+            Log.e(TAG, "Routing failed: " + e.getMessage());
             Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }else {
+        } else {
             Toast.makeText(this, "Something went wrong, Try again", Toast.LENGTH_SHORT).show();
         }
     }
@@ -591,38 +621,30 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     }
 
     @Override
-    public void onRoutingSuccess(ArrayList<Route> route, int shortestRouteIndex) {
-        if(polylines.size()>0) {
+    public void onRoutingSuccess(ArrayList<Route> routes, int shortestRouteIndex) {
+        if (polylines.size() > 0) {
             for (Polyline poly : polylines) {
                 poly.remove();
             }
+            polylines.clear();
         }
 
-        polylines = new ArrayList<>();
-        //add route(s) to the map.
-        for (int i = 0; i <route.size(); i++) {
-
-            //In case of more than 5 alternative routes
-            int colorIndex = i % COLORS.length;
-
+        for (int i = 0; i < routes.size(); i++) {
             PolylineOptions polyOptions = new PolylineOptions();
-            polyOptions.color(getResources().getColor(COLORS[colorIndex]));
+            polyOptions.color(getResources().getColor(COLORS[i % COLORS.length]));
             polyOptions.width(10 + i * 3);
-            polyOptions.addAll(route.get(i).getPoints());
+            polyOptions.addAll(routes.get(i).getPoints());
             Polyline polyline = mMap.addPolyline(polyOptions);
             polylines.add(polyline);
-
-            Toast.makeText(getApplicationContext(),"Route "+ (i+1) +": distance - "+ route.get(i).getDistanceValue()+": duration - "+ route.get(i).getDurationValue(),Toast.LENGTH_SHORT).show();
         }
-
     }
 
     @Override
     public void onRoutingCancelled() {
     }
 
-    private void erasePolylines(){
-        for(Polyline line : polylines){
+    private void erasePolylines() {
+        for (Polyline line : polylines) {
             line.remove();
         }
         polylines.clear();
