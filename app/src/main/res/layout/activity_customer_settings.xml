@@ -6,16 +6,24 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="20sp"
     tools:context=".CustomerSettingsActivity"
     android:background="@color/white">
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/new_color"
+        android:text="User Profile"
+        android:textColor="@color/white"
+        android:textSize="26sp"
+        android:padding="9dp"
+        android:paddingLeft="10dp"/>
     <ImageView
         android:id="@+id/profileImage"
         android:layout_width="170sp"
         android:layout_height="170sp"
         android:layout_gravity="center"
-        android:layout_marginTop="35dp"
+        android:layout_marginTop="65dp"
         android:layout_marginBottom="20sp"
         android:src="@drawable/baseline_account_circle_24" />
 
@@ -25,60 +33,137 @@
         android:gravity="center"
         android:orientation="vertical">
 
-
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="15dp"
+            >
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Name : "
+            android:textSize="17dp"
+            android:textColor="@color/new_color"/>
         <EditText
             android:id="@+id/name"
-            android:layout_width="330dp"
+            android:layout_width="270dp"
             android:layout_height="48dp"
-            android:paddingLeft="10dp"
-            android:background="@drawable/border3"
-            android:hint="Name"
-            android:textColorHint="@color/new_color"/>
-
+            android:background="@drawable/border4"
+            android:hint="Your Name"
+            android:paddingLeft="16dp"
+            android:textColorHint="#616161"
+            android:textSize="15dp"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="15dp"
+            >
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Name : "
+            android:textSize="17dp"
+            android:textColor="@color/new_color"/>
         <EditText
-            android:id="@+id/phone"
-            android:layout_width="330dp"
+            android:id="@+id/name"
+            android:layout_width="270dp"
             android:layout_height="48dp"
-            android:layout_marginTop="10sp"
-            android:paddingLeft="10dp"
-            android:background="@drawable/border3"
-            android:hint="Phone"
-            android:inputType="number"
-            android:textColorHint="@color/new_color"/>
+            android:background="@drawable/border4"
+            android:hint="Your Name"
+            android:paddingLeft="16dp"
+            android:textColorHint="#616161"
+            android:textSize="15dp"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="15dp"
+            >
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Name : "
+            android:textSize="17dp"
+            android:textColor="@color/new_color"/>
         <EditText
-            android:id="@+id/address"
-            android:layout_width="330dp"
+            android:id="@+id/name"
+            android:layout_width="270dp"
             android:layout_height="48dp"
-            android:layout_marginTop="10sp"
-            android:paddingLeft="10dp"
-            android:background="@drawable/border3"
-            android:hint="Address"
-            android:inputType="text"
-            android:textColorHint="@color/new_color"/>
+            android:background="@drawable/border4"
+            android:hint="Your Name"
+            android:paddingLeft="16dp"
+            android:textColorHint="#616161"
+            android:textSize="15dp"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="15dp"
+            >
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Name : "
+            android:textSize="17dp"
+            android:textColor="@color/new_color"/>
+        <EditText
+            android:id="@+id/name"
+            android:layout_width="270dp"
+            android:layout_height="48dp"
+            android:background="@drawable/border4"
+            android:hint="Your Name"
+            android:paddingLeft="16dp"
+            android:textColorHint="#616161"
+            android:textSize="15dp"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="15dp"
+            >
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Name : "
+            android:textSize="17dp"
+            android:textColor="@color/new_color"/>
+        <EditText
+            android:id="@+id/name"
+            android:layout_width="270dp"
+            android:layout_height="48dp"
+            android:background="@drawable/border4"
+            android:hint="Your Name"
+            android:paddingLeft="16dp"
+            android:textColorHint="#616161"
+            android:textSize="15dp"/>
+        </LinearLayout>
 
-
-        <Button
-            android:id="@+id/confirm"
-            android:layout_width="330dp"
-            android:layout_height="55dp"
-            android:layout_marginTop="100dp"
-            android:background="@drawable/button"
-            android:fontFamily="@font/montserrat_bold"
-            android:text="Confirm"
-            android:textColor="@color/white"
-            android:textSize="23dp"
-            />
-
-        <Button
-            android:id="@+id/back"
-            android:layout_width="330dp"
-            android:layout_height="55dp"
-            android:layout_marginTop="15dp"
-            android:background="@drawable/button"
-            android:fontFamily="@font/montserrat_bold"
-            android:textSize="23dp"
-            android:text="Back"
-            android:textColor="@color/white"/>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="50dp">
+            <Button
+                android:id="@+id/back"
+                android:layout_width="150dp"
+                android:layout_height="55dp"
+                android:background="@drawable/border3"
+                android:fontFamily="@font/montserrat_bold"
+                android:text="Back"
+                android:textColor="@color/new_color"
+                android:textSize="23dp" />
+            <Button
+                android:id="@+id/confirm"
+                android:layout_width="150dp"
+                android:layout_height="55dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/button"
+                android:fontFamily="@font/montserrat_bold"
+                android:text="Confirm"
+                android:textColor="@color/white"
+                android:textSize="23dp" />
+        </LinearLayout>
     </LinearLayout>
 
 
