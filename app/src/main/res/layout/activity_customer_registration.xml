@@ -58,7 +58,8 @@
                 android:textSize="12sp"
                 android:textStyle="bold"
                 tools:ignore="TextFields"
-                android:backgroundTint="@color/new_color"/>
+                android:backgroundTint="@color/new_color"
+                android:textColor="@color/new_color"/>
 
             <EditText
                 android:id="@+id/email"
@@ -74,7 +75,8 @@
                 android:textSize="12sp"
                 android:textStyle="bold"
                 tools:ignore="TextFields"
-                android:backgroundTint="@color/new_color"/>
+                android:backgroundTint="@color/new_color"
+                android:textColor="@color/new_color"/>
 
             <EditText
                 android:id="@+id/password"
@@ -89,7 +91,8 @@
                 android:textColorHint="@color/new_color"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:backgroundTint="@color/new_color"/>
+                android:backgroundTint="@color/new_color"
+                android:textColor="@color/new_color"/>
 
             <EditText
                 android:id="@+id/password_confirm"
@@ -104,7 +107,8 @@
                 android:textColorHint="@color/new_color"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:backgroundTint="@color/new_color"/>
+                android:backgroundTint="@color/new_color"
+                android:textColor="@color/new_color"/>
 
             <EditText
                 android:id="@+id/dob"
@@ -119,7 +123,8 @@
                 android:textColorHint="@color/new_color"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:backgroundTint="@color/new_color"/>
+                android:backgroundTint="@color/new_color"
+                android:textColor="@color/new_color"/>
 
             <EditText
                 android:id="@+id/phone"
