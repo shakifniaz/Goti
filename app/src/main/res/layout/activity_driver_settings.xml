@@ -6,18 +6,28 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="20sp"
     tools:context=".CustomerSettingsActivity"
-    android:background="@color/app_bg">
+    android:background="@drawable/bg14">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/border5"
+        android:text="Driver Profile"
+        android:textColor="@color/white"
+        android:textSize="26sp"
+        android:padding="9dp"
+        android:gravity="center"
+        android:textAlignment="center"/>
 
     <ImageView
         android:id="@+id/profileImage"
-        android:layout_width="170sp"
-        android:layout_height="170sp"
+        android:layout_width="170dp"
+        android:layout_height="170dp"
         android:layout_gravity="center"
-        android:layout_marginTop="35dp"
+        android:layout_marginTop="65dp"
         android:layout_marginBottom="20sp"
-        android:src="@drawable/account_white" />
+        android:src="@drawable/baseline_account_circle_24"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -25,89 +35,126 @@
         android:gravity="center"
         android:orientation="vertical">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="15dp">
 
-        <EditText
-            android:id="@+id/name"
-            android:layout_width="330dp"
-            android:layout_height="48dp"
-            android:paddingLeft="10dp"
-            android:background="@drawable/border3"
-            android:hint="Name"
-            android:textColorHint="@color/white"/>
+            <TextView
+                android:layout_width="90dp"
+                android:layout_height="wrap_content"
+                android:text="Name : "
+                android:textColor="@color/new_color"
+                android:textSize="17dp" />
+            <EditText
+                android:id="@+id/name"
+                android:layout_width="240dp"
+                android:layout_height="43dp"
+                android:background="@drawable/border2"
+                android:hint="Your Name"
+                android:paddingLeft="16dp"
+                android:textColorHint="@color/new_color"
+                android:textSize="16dp"
+                android:textColor="@color/new_color"/>
+        </LinearLayout>
 
-        <EditText
-            android:id="@+id/phone"
-            android:layout_width="330dp"
-            android:layout_height="48dp"
-            android:layout_marginTop="10sp"
-            android:paddingLeft="10dp"
-            android:background="@drawable/border3"
-            android:hint="Phone"
-            android:inputType="number"
-            android:textColorHint="@color/white"/>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="15dp">
+            <TextView
+                android:layout_width="90dp"
+                android:layout_height="wrap_content"
+                android:text="Phone : "
+                android:textSize="17dp"
+                android:textColor="@color/new_color"/>
+            <EditText
+                android:id="@+id/phone"
+                android:layout_width="240dp"
+                android:layout_height="43dp"
+                android:background="@drawable/border2"
+                android:hint="Your Phone Number"
+                android:inputType="number"
+                android:paddingLeft="16dp"
+                android:textColorHint="@color/new_color"
+                android:textSize="16dp"
+                android:textColor="@color/new_color"/>
+        </LinearLayout>
 
-        <EditText
-            android:id="@+id/car"
-            android:layout_width="330dp"
-            android:layout_height="48dp"
-            android:layout_marginTop="10sp"
-            android:paddingLeft="10dp"
-            android:background="@drawable/border3"
-            android:hint="Car"
-            android:inputType="text"
-            android:textColorHint="@color/white"/>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="15dp">
+            <TextView
+                android:layout_width="90dp"
+                android:layout_height="wrap_content"
+                android:text="Car : "
+                android:textSize="17dp"
+                android:textColor="@color/new_color"/>
+            <EditText
+                android:id="@+id/car"
+                android:layout_width="240dp"
+                android:layout_height="43dp"
+                android:background="@drawable/border2"
+                android:hint="Your Car"
+                android:paddingLeft="16dp"
+                android:textColorHint="@color/new_color"
+                android:textSize="16dp"
+                android:textColor="@color/new_color"/>
+        </LinearLayout>
 
         <RadioGroup
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/radioGroup"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="15dp">
 
             <RadioButton
                 android:id="@+id/GotiX"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="GotiX"
-                android:textColor="@color/white"/>
+                android:textColor="@color/new_color"/>
             <RadioButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="GotiBlack"
                 android:id="@+id/GotiBlack"
-                android:textColor="@color/white"/>
+                android:textColor="@color/new_color"/>
             <RadioButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="GotiXl"
                 android:id="@+id/GotiXl"
-                android:textColor="@color/white"/>
+                android:textColor="@color/new_color"/>
         </RadioGroup>
 
-        <Button
-            android:id="@+id/confirm"
-            android:layout_width="330dp"
-            android:layout_height="55dp"
-            android:background="@drawable/button"
-            android:fontFamily="@font/montserrat_bold"
-            android:text="Confirm"
-            android:textColor="@color/white"
-            android:textSize="23dp"
-            />
-
-        <Button
-            android:id="@+id/back"
-            android:layout_width="330dp"
-            android:layout_height="55dp"
-            android:layout_marginTop="15dp"
-            android:background="@drawable/button"
-            android:fontFamily="@font/montserrat_bold"
-            android:textSize="23dp"
-            android:text="Back"
-            android:textColor="@color/white"/>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="50dp">
+            <Button
+                android:id="@+id/back"
+                android:layout_width="150dp"
+                android:layout_height="55dp"
+                android:background="@drawable/border3"
+                android:fontFamily="@font/montserrat_bold"
+                android:text="Back"
+                android:textColor="@color/new_color"
+                android:textSize="23dp" />
+            <Button
+                android:id="@+id/confirm"
+                android:layout_width="150dp"
+                android:layout_height="55dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/button"
+                android:fontFamily="@font/montserrat_bold"
+                android:text="Confirm"
+                android:textColor="@color/white"
+                android:textSize="23dp" />
+        </LinearLayout>
     </LinearLayout>
-
-
 </LinearLayout>
