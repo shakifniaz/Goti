@@ -5,8 +5,9 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg4"
-    android:orientation="vertical">
+    android:background="@drawable/bg5"
+    android:orientation="vertical"
+    tools:context=".CustomerLoginActivity">
 
     <ImageView
         android:id="@+id/appLogo"
@@ -31,7 +32,8 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="15dp">
+            android:padding="15dp"
+            android:background="#EAE8FF">
 
 <!--            <TextView-->
 <!--                android:layout_width="wrap_content"-->
@@ -58,7 +60,7 @@
                 android:layout_width="360dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_marginTop="23dp"
+                android:layout_marginTop="20dp"
                 android:paddingStart="5dp"
                 android:text="@string/email"
                 android:textColor="@color/new_color"
@@ -99,7 +101,7 @@
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:background="@drawable/border3"
-                android:drawableLeft="@drawable/finalpasslock"
+                android:drawableLeft="@drawable/iconpass"
                 android:drawablePadding="5dp"
                 android:hint=" Type your password : "
                 android:inputType="textPassword"
@@ -129,7 +131,7 @@
                 android:layout_gravity="center"
                 android:layout_marginTop="34dp"
                 android:layout_marginBottom="20dp"
-                android:background="@drawable/border"
+                android:background="@drawable/button"
                 android:text="@string/login"
                 android:fontFamily="@font/montserrat_bold"
                 android:textAllCaps="true"
@@ -139,21 +141,27 @@
 
     </androidx.cardview.widget.CardView>
     <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_width="290dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="30dp"
+        android:backgroundTint="#F1EEFB"
+        app:cardCornerRadius="30dp"
+        app:cardElevation="20dp">
+        >
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="20dp">
+            android:layout_marginTop="12dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Don't have an account?"
-                android:textColor="@color/white"
-                android:fontFamily="@font/montserrat_regular"
-                android:textSize="14sp"
+                android:textColor="@color/black"
+                android:fontFamily="@font/montserrat_semibold"
+                android:textSize="12sp"
                 android:textStyle="normal" />
 
             <TextView
@@ -164,10 +172,10 @@
                 android:focusable="true"
                 android:paddingLeft="5dp"
                 android:text="Register Now!"
-                android:fontFamily="@font/montserrat_regular"
+                android:fontFamily="@font/montserrat_semibold"
                 android:textAllCaps="true"
                 android:textColor="@color/new_color"
-                android:textSize="14sp" />
+                android:textSize="12sp" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
