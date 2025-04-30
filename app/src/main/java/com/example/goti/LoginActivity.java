@@ -11,7 +11,6 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -66,6 +65,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void checkUserType(String userId) {
+        // First, check if the user is a Customer
         mDatabase.child("Users").child("Customers").child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -74,7 +74,7 @@ public class LoginActivity extends AppCompatActivity {
                     startActivity(new Intent(LoginActivity.this, CustomerMapActivity.class));
                     finish();
                 } else {
-                    // Check if user is a driver
+                    // If not a customer, check if the user is a Driver
                     mDatabase.child("Users").child("Drivers").child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
@@ -83,7 +83,7 @@ public class LoginActivity extends AppCompatActivity {
                                 startActivity(new Intent(LoginActivity.this, DriverMapActivity.class));
                                 finish();
                             } else {
-                                // User type not found
+                                // User is neither a customer nor a driver
                                 Toast.makeText(LoginActivity.this, "User type not recognized", Toast.LENGTH_SHORT).show();
                                 FirebaseAuth.getInstance().signOut();
                             }
@@ -91,6 +91,7 @@ public class LoginActivity extends AppCompatActivity {
 
                         @Override
                         public void onCancelled(DatabaseError databaseError) {
+                            Log.e("LoginActivity", "Database error: " + databaseError.getMessage());
                             Toast.makeText(LoginActivity.this, "Database error", Toast.LENGTH_SHORT).show();
                         }
                     });
@@ -99,6 +100,7 @@ public class LoginActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
+                Log.e("LoginActivity", "Database error: " + databaseError.getMessage());
                 Toast.makeText(LoginActivity.this, "Database error", Toast.LENGTH_SHORT).show();
             }
         });
