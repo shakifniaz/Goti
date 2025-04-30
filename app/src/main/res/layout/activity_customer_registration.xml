@@ -52,6 +52,7 @@
                 android:layout_gravity="center"
                 android:drawableStart="@drawable/baseline_account_circle_24"
                 android:hint=" Full Name"
+                android:drawablePadding="5dp"
                 android:inputType="textPersonName"
                 android:paddingStart="12dp"
                 android:textColorHint="@color/new_color"
@@ -67,6 +68,7 @@
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="1dp"
+                android:drawablePadding="5dp"
                 android:drawableStart="@drawable/baseline_email_24"
                 android:hint=" Email Address"
                 android:inputType="textEmailAddress"
@@ -84,6 +86,7 @@
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="1dp"
+                android:drawablePadding="5dp"
                 android:drawableLeft="@drawable/iconpass"
                 android:hint=" Password"
                 android:inputType="textPassword"
@@ -100,6 +103,7 @@
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="1dp"
+                android:drawablePadding="5dp"
                 android:drawableLeft="@drawable/iconpass"
                 android:hint=" Confirm Password"
                 android:inputType="textPassword"
@@ -116,6 +120,7 @@
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="1dp"
+                android:drawablePadding="5dp"
                 android:drawableLeft="@drawable/dob2"
                 android:hint=" Date of Birth"
                 android:inputType="date"
@@ -132,6 +137,7 @@
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:layout_marginTop="1dp"
+                android:drawablePadding="5dp"
                 android:drawableLeft="@drawable/baseline_add_call_24"
                 android:hint=" Phone Number"
                 android:inputType="phone"
@@ -139,7 +145,8 @@
                 android:textColorHint="@color/new_color"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:backgroundTint="@color/new_color"/>
+                android:backgroundTint="@color/new_color"
+                android:textColor="@color/new_color"/>
 
 
             <LinearLayout

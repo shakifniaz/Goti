@@ -99,7 +99,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="Already a member?  "
+                    android:text="Already a member? "
                     android:textColor="@color/new_color"
                     android:textSize="16dp" />
 
@@ -111,7 +111,7 @@
                     android:clickable="true"
                     android:text="Login "
                     android:textColor="#D368F4"
-                    android:textSize="18dp"
+                    android:textSize="16dp"
                     android:textStyle="bold"
                     tools:ignore="TouchTargetSizeCheck" />
             </LinearLayout>
