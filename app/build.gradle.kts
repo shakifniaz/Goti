@@ -66,6 +66,9 @@ dependencies {
     // Material Components (AndroidX replacement for old design support lib)
     implementation("com.google.android.material:material:1.11.0")
 
+    // Directions Api
+    implementation("com.github.jd-alexander:library:1.1.0")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
