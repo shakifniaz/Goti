@@ -39,14 +39,6 @@
             android:exported="false"
             android:label="Driver Map Activity" />
 
-        <!-- Old Login Activities (can keep or remove) -->
-        <activity
-            android:name=".CustomerLoginActivity"
-            android:exported="false" />
-        <activity
-            android:name=".DriverLoginActivity"
-            android:exported="false" />
-
         <activity
             android:name=".MapActivity"
             android:exported="false" />

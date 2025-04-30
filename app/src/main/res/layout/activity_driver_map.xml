@@ -14,7 +14,6 @@
 
     <fragment
         xmlns:map="http://schemas.android.com/apk/res-auto"
-
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
@@ -46,6 +45,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/customerDestination"
+                android:textColor="@color/black"
                 android:paddingBottom="10sp"
                 android:paddingTop="20sp"
                 android:text="Destination: --"/>
@@ -54,6 +54,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/customerName"
+                android:textColor="@color/black"
                 android:paddingBottom="10sp"
                 android:paddingTop="20sp"/>
 
@@ -61,10 +62,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/customerPhone"
+                android:textColor="@color/black"
                 android:paddingBottom="10sp"
                 android:paddingTop="20sp"/>
         </LinearLayout>
     </LinearLayout>
 
 </FrameLayout>
-
