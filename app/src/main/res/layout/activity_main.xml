@@ -1,33 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
-    >
+    android:background="@drawable/bg8"
+    android:orientation="vertical">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:isScrollContainer="false">
-
-        <ImageView
-            android:id="@+id/bg"
-            android:layout_width="419dp"
-            android:layout_height="731dp"
-            android:scaleType="centerCrop"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/bg1" />
+        android:isScrollContainer="false"
+        android:orientation="vertical">
 
         <ImageView
             android:id="@+id/logo"
             android:layout_width="287dp"
             android:layout_height="273dp"
-            android:layout_marginStart="20dp"
+            android:layout_gravity="center"
             android:layout_marginTop="50dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -36,22 +27,19 @@
 
         <TextView
             android:id="@+id/textView2"
-            android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:fontFamily="@font/line_seed_sans_xbd"
-            android:text="GOTI APP"
-            android:textAlignment="center"
+            android:text="GOTI"
+            android:layout_gravity="center"
             android:textColor="@color/new_color"
             android:textSize="45sp"
-            android:textStyle="bold"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/logo" />
+            android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="410dp"
-            android:layout_marginTop="440dp"
+            android:layout_marginTop="60dp"
             android:background="@drawable/top_corner_radius"
             android:orientation="vertical"
             app:layout_constraintTop_toTopOf="@+id/bg"
@@ -112,7 +100,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:text="Already a member?  "
-                    android:textColor="@color/white"
+                    android:textColor="@color/new_color"
                     android:textSize="16dp" />
 
                 <TextView
@@ -128,5 +116,5 @@
                     tools:ignore="TouchTargetSizeCheck" />
             </LinearLayout>
         </LinearLayout>
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
+</LinearLayout>
