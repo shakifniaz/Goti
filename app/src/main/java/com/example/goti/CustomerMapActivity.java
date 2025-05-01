@@ -113,6 +113,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     private boolean isRouteVisible = false;
     private List<Polyline> polylines = new ArrayList<>();
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -738,6 +739,9 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         driverFound = false;
         driverFoundID = "";
     }
+
+
+
 
     private void handleDriverUnavailable() {
         Toast.makeText(this, "Driver became unavailable", Toast.LENGTH_SHORT).show();
