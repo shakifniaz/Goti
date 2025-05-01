@@ -425,6 +425,10 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
 
     private void startRideRequest() {
+        if (currentRideState != RideState.NONE) {
+            endRide();
+            return;
+        }
         if (lastLocation == null) {
             Toast.makeText(this, "Location not available yet", Toast.LENGTH_SHORT).show();
             return;
@@ -659,85 +663,72 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
     private DatabaseReference driveHasEndedRef;
     private ValueEventListener driveHasEndedRefListener;
-    public void getHasRideEnded(){
+    public void getHasRideEnded() {
+        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
         driveHasEndedRef = FirebaseDatabase.getInstance().getReference()
-                .child("Users").child("Drivers")
-                .child(driverFoundID).child("customerRequest");
+                .child("CustomerRequest").child(userID);
+
         driveHasEndedRefListener = driveHasEndedRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if(!snapshot.exists()){
+                if (!snapshot.exists()) {
                     endRide();
-                } else if (snapshot.child("status").exists() &&
-                        "completed".equals(snapshot.child("status").getValue(String.class))) {
-                    endRide();
+                } else if (snapshot.child("status").exists()) {
+                    String status = snapshot.child("status").getValue(String.class);
+                    if ("completed".equals(status)) {
+                        endRide();
+                    }
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
+                Log.e("RideStatus", "Error checking ride status: " + error.getMessage());
             }
         });
     }
 
     private void endRide() {
+        // Remove all listeners
         if (driveHasEndedRefListener != null && driveHasEndedRef != null) {
             driveHasEndedRef.removeEventListener(driveHasEndedRefListener);
         }
-
-        if (driverFoundID != null && !driverFoundID.isEmpty()) {
-            DatabaseReference driverRef = FirebaseDatabase.getInstance()
-                    .getReference("Users/Drivers/" + driverFoundID + "/customerRequest");
-            driverRef.removeValue();
+        if (driverLocationRefListener != null && driverLocationRef != null) {
+            driverLocationRef.removeEventListener(driverLocationRefListener);
+        }
+        if (geoQuery != null) {
+            geoQuery.removeAllListeners();
         }
 
+        // Clear Firebase data
         String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
         customerRequestRef.child(userID).removeValue();
 
         runOnUiThread(() -> {
+            // Reset UI
             mDriverInfo.setVisibility(View.GONE);
-            mDriverName.setText("");
-            mDriverPhone.setText("");
-            mDriverCar.setText("");
-            mDriverProfileImage.setImageResource(R.drawable.account_circle_24);
             mRequest.setText("Request Ride");
             mRequest.setEnabled(true);
 
-            // Reset fare estimate
-            mFareEstimate.setText("Fare estimate: Tk. 0.00");
-            mFareEstimate.setVisibility(View.GONE);
-
-            // Clear all markers and polylines
-            if (mDriverMarker != null) {
-                mDriverMarker.remove();
-                mDriverMarker = null;
-            }
-            if (pickupMarker != null) {
-                pickupMarker.remove();
-                pickupMarker = null;
-            }
-            if (destinationMarker != null) {
-                destinationMarker.remove();
-                destinationMarker = null;
-            }
-
+            // Clear markers and routes
+            if (mDriverMarker != null) mDriverMarker.remove();
+            if (pickupMarker != null) pickupMarker.remove();
+            if (destinationMarker != null) destinationMarker.remove();
             erasePolylines();
 
-            // Reset the destination information
-            destinationName = null;
-            destinationLatLng = new LatLng(0.0, 0.0); // Reset to default
-
-            // Reset the autocomplete field
+            // Reset autocomplete
             AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
                     getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
-            if (autocompleteFragment != null) {
-                autocompleteFragment.setText("");
-            }
+            if (autocompleteFragment != null) autocompleteFragment.setText("");
         });
 
+        // Reset all state variables
         currentRideState = RideState.NONE;
         driverFound = false;
         driverFoundID = "";
+        destinationName = null;
+        destinationLatLng = new LatLng(0.0, 0.0);
+        radius = 1;
     }
 
 
@@ -845,7 +836,14 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         customerRequestRef.child(userID).removeValue()
                 .addOnSuccessListener(aVoid -> {
                     Log.d("CancelRide", "Customer request removed");
-                    clearDriverAssignment();
+                    // Clear driver assignment with status update
+                    if (driverFoundID != null && !driverFoundID.isEmpty()) {
+                        DatabaseReference driverRef = FirebaseDatabase.getInstance()
+                                .getReference("Users/Drivers/" + driverFoundID + "/customerRequest");
+                        Map<String, Object> updateMap = new HashMap<>();
+                        updateMap.put("status", "canceled");
+                        driverRef.updateChildren(updateMap);
+                    }
                     resetRideRequest();
                 })
                 .addOnFailureListener(e -> {
