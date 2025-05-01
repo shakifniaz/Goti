@@ -10,6 +10,8 @@
         android:layout_height="wrap_content"
         android:id="@+id/logout"
         android:text="Logout"
+        android:background="@drawable/button3"
+        android:textColor="@color/white"
         />
     <Button
         android:layout_gravity="end"
@@ -17,6 +19,8 @@
         android:layout_height="wrap_content"
         android:id="@+id/settings"
         android:text="Settings"
+        android:background="@drawable/button3"
+        android:textColor="@color/white"
         />
 
     <fragment
@@ -82,7 +86,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="picked customer"
-            android:id="@+id/rideStatus"/>
+            android:id="@+id/rideStatus"
+            android:background="@drawable/button2"
+            android:textColor="@color/white"
+            android:textSize="18sp"/>
     </LinearLayout>
 
 </FrameLayout>
