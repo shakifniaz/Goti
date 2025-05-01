@@ -7,8 +7,11 @@ import androidx.fragment.app.FragmentActivity;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -18,11 +21,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
-import com.directions.route.AbstractRouting;
-import com.directions.route.Route;
-import com.directions.route.RouteException;
-import com.directions.route.Routing;
-import com.directions.route.RoutingListener;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -37,6 +35,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
@@ -47,12 +46,20 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.ValueEventListener;
-
+import com.google.maps.DirectionsApi;
+import com.google.maps.GeoApiContext;
+import com.google.maps.model.DirectionsResult;
+import com.google.maps.model.TravelMode;
+import com.google.maps.android.PolyUtil;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class DriverMapActivity extends FragmentActivity implements OnMapReadyCallback, RoutingListener {
+public class DriverMapActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private static final String TAG = "DriverMapActivity";
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
@@ -64,8 +71,10 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     private DatabaseReference assignedCustomerRef;
     private GeoFire geoFire;
     private String userID;
-    private Button mLogout, mSettings;
-    private String customerID = "";
+    private Button mLogout, mSettings, mRideStatus;
+    private int status = 0;
+    private String customerID = "", destination;
+    private LatLng destinationLatLng;
     private Marker pickupMarker, destinationMarker;
     private DatabaseReference assignedCustomerPickupLocationRef;
     private ValueEventListener assignedCustomerPickupLocationRefListener;
@@ -73,38 +82,97 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     private ImageView mCustomerProfileImage;
     private TextView mCustomerName, mCustomerPhone, mCustomerDestination;
     private Location mLastLocation;
-    private List<Polyline> polylines;
-    private static final int[] COLORS = new int[]{R.color.black};
+    private List<Polyline> polylines = new ArrayList<>();
+    GeoApiContext context = new GeoApiContext.Builder()
+            .apiKey("AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q")
+            .build();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_map);
-        // Add this in onCreate() or before using the Routing library
+
         if (!Places.isInitialized()) {
-            Places.initialize(getApplicationContext(), "AIzaSyBBeBYZWT8XKIvKWONhScmwWRWpNdA_7jA");
+            Places.initialize(getApplicationContext(), "AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q");
         }
 
         polylines = new ArrayList<>();
+        mRideStatus = findViewById(R.id.rideStatus);
+        mRideStatus.setOnClickListener(v -> {
+            switch(status){
+                case 1: // Picked up customer
+                    status = 2;
+                    erasePolylines();
 
-        // Initialize all views first
+                    // Only calculate route if we have destination
+                    if (destinationLatLng != null) {
+                        getRouteToMarker(destinationLatLng);
+                    } else {
+                        // If we don't have destination yet, get it (which will trigger route calculation)
+                        getAssignedCustomerDestination();
+                    }
+
+                    mRideStatus.setText("Complete Ride");
+                    updateRideStatus("enroute");
+                    break;
+
+                case 2: // Completed ride
+                    recordRideCompletion();
+                    mRideStatus.setText("Available");
+                    status = 0;
+                    clearCustomerInfo();
+                    updateRideStatus("completed");
+                    break;
+            }
+        });
+
         initializeViews();
-
-        // Then setup Firebase
         setupFirebaseReferences();
-
-        // Then setup map
         setupMap();
-
-        // Then setup location services
         setupLocationClient();
-
-        // Then setup listeners
         setupButtonListeners();
         setupCustomerAssignmentListener();
 
-        // Initialize other variables
         customerID = "";
+    }
+
+    private void updateRideStatus(String status) {
+        if (customerID == null || customerID.isEmpty()) return;
+
+        DatabaseReference rideRef = FirebaseDatabase.getInstance()
+                .getReference("CustomerRequest/" + customerID + "/status");
+        rideRef.setValue(status);
+    }
+
+    private void recordRideCompletion() {
+        if (userID == null || customerID == null) return;
+
+        // Calculate fare based on distance and time
+        double distance = calculateRideDistance();
+        double fare = calculateFare(distance);
+
+        // Create ride record
+        DatabaseReference historyRef = FirebaseDatabase.getInstance()
+                .getReference("RideHistory").push();
+
+        Map<String, Object> rideMap = new HashMap<>();
+        rideMap.put("driverId", userID);
+        rideMap.put("customerId", customerID);
+        rideMap.put("distance", distance);
+        rideMap.put("fare", fare);
+        rideMap.put("timestamp", ServerValue.TIMESTAMP);
+
+        historyRef.setValue(rideMap);
+    }
+
+    private double calculateRideDistance() {
+        // Implement your distance calculation logic
+        return 0.0;
+    }
+
+    private double calculateFare(double distance) {
+        // Implement your fare calculation logic
+        return 0.0;
     }
 
     private void initializeViews() {
@@ -206,19 +274,90 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
 
     private void showCustomerInfo() {
         try {
-            mCustomerInfo.setVisibility(View.VISIBLE); // Show info panel first
-            getAssignedCustomerPickupLocation();
-            getAssignedCustomerInfo();
-            getAssignedCustomerDestination();
+            if (mMap == null) {
+                Log.e(TAG, "Map is not ready yet");
+                return;
+            }
+            mCustomerInfo.setVisibility(View.VISIBLE);
+            status = 1;
+            mRideStatus.setText("Picked Up Customer");
 
-            // Add this to ensure map is ready before adding markers
-            if (mMap != null) {
-                mMap.animateCamera(CameraUpdateFactory.zoomTo(15f));
+            // Get both pickup and destination locations
+            getAssignedCustomerPickupLocation();
+            getAssignedCustomerDestination();
+            getAssignedCustomerInfo();
+
+            // Center map on driver's current location if available
+            if (mLastLocation != null) {
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                        new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()),
+                        15f));
+
+                // Draw route from current location to pickup point
+                if (pickupMarker != null) {
+                    getRouteToMarker(pickupMarker.getPosition());
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error showing customer info", e);
+            endRide();
             clearCustomerInfo();
         }
+    }
+
+    private void endRide() {
+        runOnUiThread(() -> {
+            // Update UI first
+            mRideStatus.setText("Available");
+            status = 0;
+
+            // Clear all markers
+            if (pickupMarker != null) {
+                pickupMarker.remove();
+                pickupMarker = null;
+            }
+            if (destinationMarker != null) {
+                destinationMarker.remove();
+                destinationMarker = null;
+            }
+
+            // Clear polylines
+            erasePolylines();
+
+            // Hide customer info
+            mCustomerInfo.setVisibility(View.GONE);
+            resetCustomerInfoFields();
+
+            // Update Firebase
+            if (userID != null && !userID.isEmpty()) {
+                // Clear driver's customer request
+                DatabaseReference driverRef = FirebaseDatabase.getInstance()
+                        .getReference("Users/Drivers/" + userID + "/customerRequest");
+                driverRef.removeValue();
+
+                // Update driver's availability
+                DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("driversAvailable");
+                DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference("driversWorking");
+                GeoFire geoFireAvailable = new GeoFire(refAvailable);
+                GeoFire geoFireWorking = new GeoFire(refWorking);
+
+                if (mLastLocation != null) {
+                    geoFireWorking.removeLocation(userID);
+                    geoFireAvailable.setLocation(userID,
+                            new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                }
+            }
+
+            // Clear customer ID
+            customerID = "";
+
+            // Reset map view to current location if available
+            if (mLastLocation != null && mMap != null) {
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                        new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()),
+                        15f));
+            }
+        });
     }
 
     private void clearCustomerInfo() {
@@ -228,6 +367,8 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             removeAllMarkers();
             mCustomerInfo.setVisibility(View.GONE);
             resetCustomerInfoFields();
+            status = 0;
+            mRideStatus.setText("Available");
         } catch (Exception e) {
             Log.e(TAG, "Error clearing customer info", e);
         }
@@ -261,11 +402,6 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             return;
         }
 
-        // Remove previous listener if exists
-        if (assignedCustomerPickupLocationRefListener != null && assignedCustomerPickupLocationRef != null) {
-            assignedCustomerPickupLocationRef.removeEventListener(assignedCustomerPickupLocationRefListener);
-        }
-
         assignedCustomerPickupLocationRef = FirebaseDatabase.getInstance()
                 .getReference("CustomerRequest/" + customerID + "/l");
 
@@ -278,14 +414,15 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                         return;
                     }
 
-                    Object locationObj = snapshot.getValue();
-                    if (locationObj instanceof List) {
-                        List<?> location = (List<?>) locationObj;
-                        if (location.size() >= 2) {
-                            updatePickupMarker((List<Object>) location);
-                        } else {
-                            Log.d(TAG, "Invalid location data format");
+                    if (snapshot.getValue() instanceof Map) {
+                        Map<String, Object> locationMap = (Map<String, Object>) snapshot.getValue();
+                        if (locationMap.containsKey("0") && locationMap.containsKey("1")) {
+                            updatePickupMarker(Arrays.asList(locationMap.get("0"), locationMap.get("1")));
                         }
+                    } else if (snapshot.getValue() instanceof List) {
+                        updatePickupMarker((List<Object>) snapshot.getValue());
+                    } else {
+                        Log.d(TAG, "Unknown location data format");
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "Error parsing pickup location", e);
@@ -300,52 +437,95 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     }
 
     private void updatePickupMarker(List<Object> location) {
-        try {
-            double lat = Double.parseDouble(location.get(0).toString());
-            double lng = Double.parseDouble(location.get(1).toString());
-            LatLng pickupLatLng = new LatLng(lat, lng);
+        runOnUiThread(() -> {
+            try {
+                double lat = Double.parseDouble(location.get(0).toString());
+                double lng = Double.parseDouble(location.get(1).toString());
+                LatLng pickupLatLng = new LatLng(lat, lng);
 
-            if (pickupMarker != null) {
-                pickupMarker.remove();
+                if (pickupMarker != null) {
+                    pickupMarker.remove();
+                }
+
+                pickupMarker = mMap.addMarker(new MarkerOptions()
+                        .position(pickupLatLng)
+                        .title("Pickup Location")
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+
+                // Draw route from current location to pickup point if we have location
+                if (mLastLocation != null) {
+                    getRouteToMarker(pickupLatLng);
+                }
+
+                // Zoom to show both driver and pickup if possible
+                if (mLastLocation != null) {
+                    LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                    builder.include(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                    builder.include(pickupLatLng);
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100));
+                } else {
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pickupLatLng, 15));
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error updating pickup marker", e);
             }
-
-            pickupMarker = mMap.addMarker(new MarkerOptions()
-                    .position(pickupLatLng)
-                    .title("Pickup Location")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
-
-            // Calculate route only if driver's location is available
-            if (mLastLocation != null) {
-                getRouteToMarker(pickupLatLng);
-            }
-
-            if (mMap != null) {
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pickupLatLng, 15));
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error updating pickup marker", e);
-        }
+        });
     }
 
-    private void getRouteToMarker(LatLng pickupLatLng) {
-        if (mLastLocation == null || pickupLatLng == null) {
-            Toast.makeText(this, "Location data missing", Toast.LENGTH_SHORT).show();
+    private void getRouteToMarker(LatLng destination) {
+        if (mLastLocation == null || destination == null || mMap == null) {
+            Log.e("ROUTE_ERROR", "Cannot calculate route - missing data");
             return;
         }
 
-        // Start point (driver's location)
-        LatLng start = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+        erasePolylines();
 
-        // End point (customer's pickup location)
-        LatLng end = pickupLatLng;
+        new Thread(() -> {
+            try {
 
-        Routing routing = new Routing.Builder()
-                .travelMode(AbstractRouting.TravelMode.DRIVING)
-                .withListener(DriverMapActivity.this)
-                .alternativeRoutes(false)
-                .waypoints(start, end)
-                .build();
-        routing.execute();
+                GeoApiContext context = new GeoApiContext.Builder()
+                        .apiKey("AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q")
+                        .build();
+
+                DirectionsResult result = DirectionsApi.newRequest(context)
+                        .origin(new com.google.maps.model.LatLng(
+                                mLastLocation.getLatitude(),
+                                mLastLocation.getLongitude()))
+                        .destination(new com.google.maps.model.LatLng(
+                                destination.latitude,
+                                destination.longitude))
+                        .mode(TravelMode.DRIVING)
+                        .await();
+
+                runOnUiThread(() -> {
+                    if (result.routes != null && result.routes.length > 0) {
+                        List<LatLng> decodedPath = PolyUtil.decode(
+                                result.routes[0].overviewPolyline.getEncodedPath());
+
+                        PolylineOptions polylineOptions = new PolylineOptions()
+                                .addAll(decodedPath)
+                                .color(Color.BLUE)
+                                .width(10);
+
+                        polylines.add(mMap.addPolyline(polylineOptions));
+
+                        // Zoom to show the entire route
+                        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                        builder.include(new LatLng(
+                                mLastLocation.getLatitude(),
+                                mLastLocation.getLongitude()));
+                        builder.include(destination);
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100));
+                    }
+                });
+            } catch (Exception e) {
+                Log.e("DirectionsAPI", "Error: " + e.getMessage());
+                runOnUiThread(() ->
+                        Toast.makeText(DriverMapActivity.this,
+                                "Failed to get route: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show());
+            }
+        }).start();
     }
 
     private void getAssignedCustomerInfo() {
@@ -384,7 +564,10 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     }
 
     private void getAssignedCustomerDestination() {
-        if (customerID == null || customerID.isEmpty()) return;
+        if (customerID == null || customerID.isEmpty()) {
+            Log.d("Destination", "CustomerID is null or empty");
+            return;
+        }
 
         DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
                 .getReference("CustomerRequest/" + customerID);
@@ -393,57 +576,274 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 try {
-                    if (dataSnapshot.exists()) {
-                        String destinationName = dataSnapshot.child("destinationName").getValue(String.class);
-                        if (destinationName != null) {
-                            mCustomerDestination.setText("Destination: " + destinationName);
+                    if (!dataSnapshot.exists()) {
+                        Log.d("Destination", "No customer request data");
+                        return;
+                    }
+
+                    // Get destination name
+                    if (dataSnapshot.hasChild("destination")) {
+                        destination = dataSnapshot.child("destination").getValue(String.class);
+                        mCustomerDestination.setText("Destination: " + destination);
+                    }
+
+                    // Get destination coordinates
+                    Object latLngObj = null;
+                    if (dataSnapshot.hasChild("destinationLatLng")) {
+                        latLngObj = dataSnapshot.child("destinationLatLng").getValue();
+                    } else if (dataSnapshot.hasChild("destinationLat") && dataSnapshot.hasChild("destinationLng")) {
+                        // Handle case where lat/lng are separate fields
+                        double lat = dataSnapshot.child("destinationLat").getValue(Double.class);
+                        double lng = dataSnapshot.child("destinationLng").getValue(Double.class);
+                        latLngObj = Arrays.asList(lat, lng);
+                    }
+
+                    if (latLngObj != null) {
+                        List<Object> latLng = new ArrayList<>();
+                        if (latLngObj instanceof Map) {
+                            Map<String, Object> map = (Map<String, Object>) latLngObj;
+                            latLng.add(map.get("0"));
+                            latLng.add(map.get("1"));
+                        } else if (latLngObj instanceof List) {
+                            latLng = (List<Object>) latLngObj;
                         }
 
-                        List<Object> latLng = (List<Object>) dataSnapshot.child("destinationLatLng").getValue();
-                        if (latLng != null && latLng.size() >= 2) {
-                            updateDestinationMarker(latLng, destinationName);
+                        if (latLng.size() >= 2) {
+                            double lat = Double.parseDouble(latLng.get(0).toString());
+                            double lng = Double.parseDouble(latLng.get(1).toString());
+                            destinationLatLng = new LatLng(lat, lng);
+
+                            // Update marker
+                            updateDestinationMarker(latLng, destination);
+
+                            // Draw route if driver is enroute (status = 2)
+                            if (status == 2 && mLastLocation != null) {
+                                getRouteToMarker(destinationLatLng);
+                            }
                         }
                     }
                 } catch (Exception e) {
-                    Log.e(TAG, "Error getting destination", e);
+                    Log.e("Destination", "Error processing destination", e);
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e(TAG, "Error getting destination", databaseError.toException());
+                Log.e("Destination", "Database error", databaseError.toException());
             }
         });
     }
 
     private void updateDestinationMarker(List<Object> latLng, String destinationName) {
-        try {
-            double lat = Double.parseDouble(latLng.get(0).toString());
-            double lng = Double.parseDouble(latLng.get(1).toString());
-            LatLng destination = new LatLng(lat, lng);
+        runOnUiThread(() -> {
+            try {
+                if (mMap == null) {
+                    Log.e("Destination", "Map is not ready");
+                    return;
+                }
 
-            if (destinationMarker != null) {
-                destinationMarker.remove();
+                if (latLng == null || latLng.size() < 2) {
+                    Log.e("Destination", "Invalid coordinates");
+                    return;
+                }
+
+                double lat = Double.parseDouble(latLng.get(0).toString());
+                double lng = Double.parseDouble(latLng.get(1).toString());
+                LatLng destination = new LatLng(lat, lng);
+
+                // Remove old marker if exists
+                if (destinationMarker != null) {
+                    destinationMarker.remove();
+                }
+
+                // Create new marker
+                MarkerOptions options = new MarkerOptions()
+                        .position(destination)
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
+
+                if (destinationName != null) {
+                    options.title("Destination: " + destinationName);
+                }
+
+                destinationMarker = mMap.addMarker(options);
+
+                // If we're enroute and have a pickup location, draw the route
+                if (status == 2 && pickupMarker != null) {
+                    getRouteToMarker(destination);
+                }
+
+                // Zoom to show both pickup and destination if possible
+                if (pickupMarker != null) {
+                    LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                    builder.include(pickupMarker.getPosition());
+                    builder.include(destination);
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100));
+                } else {
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(destination, 15));
+                }
+
+            } catch (Exception e) {
+                Log.e("Destination", "Failed to update marker", e);
             }
-
-            destinationMarker = mMap.addMarker(new MarkerOptions()
-                    .position(destination)
-                    .title("Destination: " + (destinationName != null ? destinationName : "Unknown"))
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
-        } catch (Exception e) {
-            Log.e(TAG, "Error updating destination marker", e);
-        }
+        });
     }
 
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
+        Log.d(TAG, "Map is now ready");  // Important debug log
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            enableMyLocation();
+        // 1. First set up basic map properties
+        mMap.getUiSettings().setZoomControlsEnabled(true);
+        mMap.getUiSettings().setMyLocationButtonEnabled(true);
+
+        // 2. Set callback for when tiles are loaded (critical for marker visibility)
+        mMap.setOnMapLoadedCallback(() -> {
+            Log.d(TAG, "Map tiles fully loaded");
+            redrawExistingMarkers();  // Will redraw any existing markers
+        });
+
+        // 3. Check permissions and enable location
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mMap.setMyLocationEnabled(true);
+            setupLocationUpdates();
         } else {
             requestLocationPermissions();
         }
+
+        // 4. Test marker placement (temporary - remove after verification)
+        testMarkerPlacement();
+    }
+
+    // New helper method to redraw existing markers
+    private void redrawExistingMarkers() {
+        runOnUiThread(() -> {
+            try {
+                // Redraw pickup marker if we have customer data
+                if (customerID != null && !customerID.isEmpty()) {
+                    DatabaseReference pickupRef = FirebaseDatabase.getInstance()
+                            .getReference("CustomerRequest/" + customerID + "/l");
+
+                    pickupRef.get().addOnCompleteListener(task -> {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            DataSnapshot snapshot = task.getResult();
+                            if (snapshot.exists()) {
+                                List<Object> location = (List<Object>) snapshot.getValue();
+                                if (location != null && location.size() >= 2) {
+                                    LatLng pickupLatLng = new LatLng(
+                                            Double.parseDouble(location.get(0).toString()),
+                                            Double.parseDouble(location.get(1).toString())
+                                    );
+
+                                    if (pickupMarker != null) {
+                                        pickupMarker.remove();
+                                    }
+                                    pickupMarker = mMap.addMarker(new MarkerOptions()
+                                            .position(pickupLatLng)
+                                            .title("Pickup Location")
+                                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Redraw destination marker if exists
+                if (destinationLatLng != null) {
+                    if (destinationMarker != null) {
+                        destinationMarker.remove();
+                    }
+                    destinationMarker = mMap.addMarker(new MarkerOptions()
+                            .position(destinationLatLng)
+                            .title(destination != null ? "Destination: " + destination : "Destination")
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+
+                    Log.d(TAG, "Destination marker redrawn at: " + destinationLatLng);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error redrawing markers", e);
+            }
+        });
+    }
+
+    // Temporary test method (remove after verification)
+    private void testMarkerPlacement() {
+        new Handler().postDelayed(() -> {
+            if (mMap != null) {
+                // Clear any existing test markers/polylines first
+                erasePolylines();
+
+                // Test locations (San Francisco coordinates)
+                LatLng testPickup = new LatLng(37.7749, -122.4194);  // SF downtown
+                LatLng testDestination = new LatLng(37.3352, -122.0096);  // Cupertino
+
+                // Add pickup marker (red)
+                mMap.addMarker(new MarkerOptions()
+                        .position(testPickup)
+                        .title("TEST PICKUP")
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+
+                // Add destination marker (blue)
+                mMap.addMarker(new MarkerOptions()
+                        .position(testDestination)
+                        .title("TEST DESTINATION")
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+
+                // Zoom to show both markers
+                LatLngBounds bounds = new LatLngBounds.Builder()
+                        .include(testPickup)
+                        .include(testDestination)
+                        .build();
+                mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100));
+
+                // Test route drawing
+                new Thread(() -> {
+                    try {
+                        GeoApiContext context = new GeoApiContext.Builder()
+                                .apiKey("AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q")
+                                .build();
+
+                        DirectionsResult result = DirectionsApi.newRequest(context)
+                                .origin(new com.google.maps.model.LatLng(
+                                        testPickup.latitude,
+                                        testPickup.longitude))
+                                .destination(new com.google.maps.model.LatLng(
+                                        testDestination.latitude,
+                                        testDestination.longitude))
+                                .mode(TravelMode.DRIVING)
+                                .await();
+
+                        runOnUiThread(() -> {
+                            if (result.routes != null && result.routes.length > 0) {
+                                List<LatLng> decodedPath = PolyUtil.decode(
+                                        result.routes[0].overviewPolyline.getEncodedPath());
+
+                                PolylineOptions polylineOptions = new PolylineOptions()
+                                        .addAll(decodedPath)
+                                        .color(Color.GREEN)  // Use green for test route
+                                        .width(12);
+
+                                polylines.add(mMap.addPolyline(polylineOptions));
+                                Log.d(TAG, "Test route drawn successfully");
+                            } else {
+                                Log.e(TAG, "No routes returned in test");
+                            }
+                        });
+                    } catch (Exception e) {
+                        Log.e(TAG, "Test route failed: " + e.getMessage());
+                        runOnUiThread(() ->
+                                Toast.makeText(this,
+                                        "Test route failed: " + e.getMessage(),
+                                        Toast.LENGTH_LONG).show());
+                    }
+                }).start();
+
+                Log.d(TAG, "Test markers placed at:\n" +
+                        "Pickup: " + testPickup + "\n" +
+                        "Destination: " + testDestination);
+            }
+        }, 3000);  // 3 second delay to ensure map is fully loaded
     }
 
     private void enableMyLocation() {
@@ -468,22 +868,33 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 if (locationResult == null) return;
-                for (Location location : locationResult.getLocations()) {
-                    if (location != null) {
-                        updateDriverLocation(location);
+
+                Location location = locationResult.getLastLocation();
+                if (location != null) {
+                    mLastLocation = location;
+                    updateDriverLocation(location);
+
+                    // Auto-center map if no markers are present
+                    if (pickupMarker == null && destinationMarker == null) {
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                                new LatLng(location.getLatitude(), location.getLongitude()),
+                                15f));
                     }
                 }
             }
         };
 
-        try {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
-            } else {
-                requestLocationPermissions();
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error setting up location updates", e);
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationProviderClient.requestLocationUpdates(
+                    locationRequest, locationCallback, Looper.getMainLooper());
+        }
+    }
+
+    private void updateMapCamera(Location location) {
+        if (mMap != null) {
+            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
         }
     }
 
@@ -492,8 +903,6 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             Log.d(TAG, "Location or userID is null");
             return;
         }
-
-        mLastLocation = location;
 
         try {
             DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("driversAvailable");
@@ -534,7 +943,6 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                             }
                         });
 
-                // Also update the driver's location under driversWorking/{driverId}/l
                 DatabaseReference driverWorkingLocRef = FirebaseDatabase.getInstance().getReference("driversWorking/" + userID + "/l");
                 List<Object> locationList = new ArrayList<>();
                 locationList.add(location.getLatitude());
@@ -542,12 +950,6 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                 driverWorkingLocRef.setValue(locationList)
                         .addOnSuccessListener(aVoid -> Log.d(TAG, "Driver location updated under driversWorking/l"))
                         .addOnFailureListener(e -> Log.e(TAG, "Failed to update driver location under driversWorking/l", e));
-            }
-
-            // Update the map camera to follow the driver
-            if (mMap != null) {
-                LatLng driverLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-                mMap.animateCamera(CameraUpdateFactory.newLatLng(driverLatLng));
             }
         } catch (Exception e) {
             Log.e(TAG, "Error updating driver location", e);
@@ -604,43 +1006,6 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         if (assignedCustomerPickupLocationRefListener != null && assignedCustomerPickupLocationRef != null) {
             assignedCustomerPickupLocationRef.removeEventListener(assignedCustomerPickupLocationRefListener);
         }
-    }
-
-    @Override
-    public void onRoutingFailure(RouteException e) {
-        if (e != null) {
-            Log.e(TAG, "Routing failed: " + e.getMessage());
-            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(this, "Something went wrong, Try again", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    public void onRoutingStart() {
-    }
-
-    @Override
-    public void onRoutingSuccess(ArrayList<Route> routes, int shortestRouteIndex) {
-        if (polylines.size() > 0) {
-            for (Polyline poly : polylines) {
-                poly.remove();
-            }
-            polylines.clear();
-        }
-
-        for (int i = 0; i < routes.size(); i++) {
-            PolylineOptions polyOptions = new PolylineOptions();
-            polyOptions.color(getResources().getColor(COLORS[i % COLORS.length]));
-            polyOptions.width(10 + i * 3);
-            polyOptions.addAll(routes.get(i).getPoints());
-            Polyline polyline = mMap.addPolyline(polyOptions);
-            polylines.add(polyline);
-        }
-    }
-
-    @Override
-    public void onRoutingCancelled() {
     }
 
     private void erasePolylines() {

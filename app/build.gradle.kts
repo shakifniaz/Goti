@@ -69,6 +69,15 @@ dependencies {
     // Directions Api
     implementation("com.github.jd-alexander:library:1.1.0")
 
+    //Google maps direction api
+    implementation("com.google.maps:google-maps-services:2.2.0")
+    implementation("org.slf4j:slf4j-simple:1.7.25")
+    implementation("com.google.android.gms:play-services-maps:18.1.0")
+    implementation("com.google.maps.android:android-maps-utils:2.2.5")
+
+
+    implementation("com.google.android.libraries.places:places:3.3.0")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

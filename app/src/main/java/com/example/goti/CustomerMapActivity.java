@@ -1,11 +1,17 @@
 package com.example.goti;
 
+import static android.content.ContentValues.TAG;
+
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -22,6 +28,11 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import com.bumptech.glide.Glide;
+import com.directions.route.AbstractRouting;
+import com.directions.route.Route;
+import com.directions.route.RouteException;
+import com.directions.route.Routing;
+import com.directions.route.RoutingListener;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
@@ -39,24 +50,35 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.maps.DirectionsApi;
+import com.google.maps.GeoApiContext;
+import com.google.maps.android.PolyUtil;
+import com.google.maps.model.DirectionsResult;
+import com.google.maps.model.TravelMode;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CustomerMapActivity extends FragmentActivity implements OnMapReadyCallback {
+public class CustomerMapActivity extends FragmentActivity implements OnMapReadyCallback, RoutingListener {
+
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationCallback locationCallback;
@@ -67,8 +89,10 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     private DatabaseReference driversAvailableRef;
     private DatabaseReference driversWorkingRef;
     private GeoFire geoFire;
+
     private enum RideState { NONE, REQUESTING, DRIVER_ASSIGNED }
     private RideState currentRideState = RideState.NONE;
+
     private int radius = 1;
     private boolean driverFound = false;
     private String driverFoundID;
@@ -85,6 +109,9 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     private static final int MAX_SEARCH_RADIUS = 10; // km
     private static final long SEARCH_TIMEOUT = 30000; // 30 seconds
     private Handler searchTimeoutHandler;
+    private LatLng customerCurrentLocation;
+    private boolean isRouteVisible = false;
+    private List<Polyline> polylines = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,7 +123,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         requestService = defaultRadio != null ? defaultRadio.getText().toString() : "GotiX";
 
         if (!Places.isInitialized()) {
-            Places.initialize(getApplicationContext(), "AIzaSyAki34c1aSKeFTxWp8vTeM8Zcsom0ThbCM");
+            Places.initialize(getApplicationContext(), "AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q");
         }
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -104,6 +131,8 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         mapFragment.getMapAsync(this);
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
+        destinationLatLng = new LatLng(0.0,0.0);
 
         mRequest = findViewById(R.id.request);
         mLogout = findViewById(R.id.logout);
@@ -133,7 +162,6 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                 Toast.makeText(CustomerMapActivity.this,
                         "App crashed: " + throwable.getMessage(), Toast.LENGTH_LONG).show();
             });
-            // Optionally restart the activity
             new Handler().postDelayed(() -> {
                 Intent intent = new Intent(CustomerMapActivity.this, CustomerMapActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -167,6 +195,87 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         });
     }
 
+    private void drawRouteToDestination() {
+        if (lastLocation == null || destinationLatLng == null || mMap == null) {
+            Log.e(TAG, "Cannot draw route - missing required parameters");
+            return;
+        }
+
+        // Get API key from resources
+        String apiKey;
+        try {
+            apiKey = getString(R.string.google_maps_key);
+            if (apiKey == null || apiKey.isEmpty()) {
+                throw new IllegalStateException("Google Maps API key not found");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "API Key error: " + e.getMessage());
+            Toast.makeText(this, "Configuration error: Missing API key", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        LatLng origin = new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude());
+        erasePolylines();
+
+        try {
+            GeoApiContext context = new GeoApiContext.Builder()
+                    .apiKey(apiKey)
+                    .build();
+
+            DirectionsResult result = DirectionsApi.newRequest(context)
+                    .origin(new com.google.maps.model.LatLng(origin.latitude, origin.longitude))
+                    .destination(new com.google.maps.model.LatLng(
+                            destinationLatLng.latitude,
+                            destinationLatLng.longitude))
+                    .mode(TravelMode.DRIVING)
+                    .await();
+
+            runOnUiThread(() -> {
+                if (result.routes != null && result.routes.length > 0) {
+                    List<LatLng> decodedPath = PolyUtil.decode(
+                            result.routes[0].overviewPolyline.getEncodedPath());
+
+                    PolylineOptions polylineOptions = new PolylineOptions()
+                            .addAll(decodedPath)
+                            .color(Color.BLUE)
+                            .width(12);
+
+                    polylines.add(mMap.addPolyline(polylineOptions));
+
+                    // Zoom to show entire route
+                    LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                    builder.include(origin);
+                    builder.include(destinationLatLng);
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100));
+                } else {
+                    Toast.makeText(CustomerMapActivity.this,
+                            "No route found between locations",
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Routing error: " + e.getMessage(), e);
+            runOnUiThread(() -> {
+                String errorMsg = e.getMessage() != null ? e.getMessage() : "Unknown routing error";
+                if (errorMsg.contains("API_KEY")) {
+                    Toast.makeText(CustomerMapActivity.this,
+                            "API Key Error: Please check your Google Maps configuration",
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(CustomerMapActivity.this,
+                            "Route Error: " + errorMsg,
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
+    private void updateRoute() {
+        if (isRouteVisible && customerCurrentLocation != null && destinationLatLng != null) {
+            drawRouteToDestination();
+        }
+    }
+
     private void logoutUser() {
         cancelRideRequest();
         FirebaseAuth.getInstance().signOut();
@@ -192,42 +301,66 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                 getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
 
         autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
-        autocompleteFragment.setOnPlaceSelectedListener(new com.google.android.libraries.places.widget.listener.PlaceSelectionListener() {
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
             @Override
             public void onPlaceSelected(@NonNull Place place) {
-                if (place.getLatLng() != null) {
-                    destinationName = place.getName();
-                    destinationLatLng = place.getLatLng();
-                    updateDestinationMarker();
-                } else {
-                    Toast.makeText(CustomerMapActivity.this, "Invalid location selected", Toast.LENGTH_SHORT).show();
+                try {
+                    if (place.getLatLng() != null) {
+                        destinationLatLng = place.getLatLng();
+                        destinationName = place.getName();
+                        updateDestinationMarker();
+                        if (lastLocation != null) {
+                            drawRouteToDestination();
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Place selection error", e);
+                    Toast.makeText(CustomerMapActivity.this,
+                            "Error selecting place: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
                 }
             }
 
             @Override
             public void onError(@NonNull Status status) {
-                Log.e("PlaceError", "Error: " + status);
-                Toast.makeText(CustomerMapActivity.this, "Place selection error", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Place selection error: " + status.getStatusMessage());
+                Toast.makeText(CustomerMapActivity.this,
+                        "Place selection error: " + status.getStatusMessage(),
+                        Toast.LENGTH_LONG).show();
             }
         });
     }
 
-    private void updateDestinationMarker() {
-        if (destinationLatLng == null || destinationName == null) {
-            return;
-        }
+    private void getRouteToMarker(LatLng origin, LatLng destination) {
+        erasePolylines();
 
-        try {
+        Routing routing = new Routing.Builder()
+                .travelMode(AbstractRouting.TravelMode.DRIVING)
+                .withListener(this)
+                .alternativeRoutes(false)
+                .waypoints(origin, destination)
+                .build();
+        routing.execute();
+    }
+
+    private void updateDestinationMarker() {
+        runOnUiThread(() -> {
+            if (mMap == null) {
+                Log.e(TAG, "Map not initialized");
+                return;
+            }
+
             if (destinationMarker != null) {
                 destinationMarker.remove();
             }
-            destinationMarker = mMap.addMarker(new MarkerOptions()
-                    .position(destinationLatLng)
-                    .title("Destination: " + destinationName)
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
-        } catch (Exception e) {
-            Log.e("MapMarker", "Error updating destination marker", e);
-        }
+
+            if (destinationLatLng != null && destinationName != null) {
+                destinationMarker = mMap.addMarker(new MarkerOptions()
+                        .position(destinationLatLng)
+                        .title("Destination: " + destinationName)
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+            }
+        });
     }
 
     private void startRideRequest() {
@@ -258,6 +391,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             customerRequest.put("destinationName", destinationName);
             customerRequest.put("destinationLatLng", Arrays.asList(destinationLatLng.latitude, destinationLatLng.longitude));
             customerRequest.put("service", requestService);
+            customerRequest.put("status", "requesting");
 
             customerRequestRef.child(userID).setValue(customerRequest)
                     .addOnCompleteListener(task -> {
@@ -271,7 +405,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
                         try {
                             pickupLocation = new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude());
-                            updatePickupMarker();
+                            updatePickupMarker(pickupLocation);
                             getClosestDriver();
                         } catch (Exception e) {
                             Log.e("RideRequest", "Error processing location", e);
@@ -286,14 +420,39 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         }
     }
 
-    private void updatePickupMarker() {
-        if (pickupMarker != null) {
-            pickupMarker.remove();
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (mMap != null) {
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                        mMap.setMyLocationEnabled(true);
+                        setupLocationUpdates();
+                    }
+                }
+            } else {
+                Toast.makeText(this, "Location permission is required for this app to function", Toast.LENGTH_LONG).show();
+            }
         }
-        pickupMarker = mMap.addMarker(new MarkerOptions()
-                .position(pickupLocation)
-                .title("Pickup Here")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+    }
+
+    private boolean isLocationEnabled() {
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+    }
+
+    private void updatePickupMarker(LatLng location) {
+        runOnUiThread(() -> {
+            if (pickupMarker != null) {
+                pickupMarker.remove();
+            }
+            pickupMarker = mMap.addMarker(new MarkerOptions()
+                    .position(location)
+                    .title("Your Location")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+        });
     }
 
     private void getClosestDriver() {
@@ -303,10 +462,8 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             return;
         }
 
-        // Remove any existing timeout handler
         searchTimeoutHandler.removeCallbacksAndMessages(null);
 
-        // Set a timeout for the search
         searchTimeoutHandler.postDelayed(() -> {
             if (!driverFound && currentRideState == RideState.REQUESTING) {
                 handleNoDriversAvailable();
@@ -337,7 +494,6 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                                     return;
                                 }
 
-                                // Null-safe comparison
                                 if(requestService != null && requestService.equals(driverMap.get("service"))){
                                     driverFound = true;
                                     driverFoundID = snapshot.getKey();
@@ -387,6 +543,9 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         map.put("customerRideID", FirebaseAuth.getInstance().getCurrentUser().getUid());
         map.put("destination", destinationName);
         map.put("service", requestService);
+        map.put("destinationLat", destinationLatLng.latitude);
+        map.put("destinationLng", destinationLatLng.longitude);
+        map.put("status", "assigned");
 
         driverRef.updateChildren(map).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -394,7 +553,12 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                 mRequest.setText("Tracking Driver...");
                 mDriverInfo.setVisibility(View.VISIBLE);
                 getDriverLocation();
+                getHasRideEnded();
                 getAssignedDriverInfo();
+
+                // Update customer request status
+                String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                customerRequestRef.child(userID).child("status").setValue("assigned");
             } else {
                 handleDriverAssignmentFailed();
             }
@@ -431,6 +595,73 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                 Log.e("CustomerInfo", "Error: " + error.getMessage());
             }
         });
+    }
+
+    private DatabaseReference driveHasEndedRef;
+    private ValueEventListener driveHasEndedRefListener;
+    public void getHasRideEnded(){
+        driveHasEndedRef = FirebaseDatabase.getInstance().getReference()
+                .child("Users").child("Drivers")
+                .child(driverFoundID).child("customerRequest");
+        driveHasEndedRefListener = driveHasEndedRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if(!snapshot.exists()){
+                    endRide();
+                } else if (snapshot.child("status").exists() &&
+                        "completed".equals(snapshot.child("status").getValue(String.class))) {
+                    endRide();
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+            }
+        });
+    }
+
+    private void endRide(){
+        if (driveHasEndedRefListener != null && driveHasEndedRef != null) {
+            driveHasEndedRef.removeEventListener(driveHasEndedRefListener);
+        }
+
+        if (driverFoundID != null && !driverFoundID.isEmpty()) {
+            DatabaseReference driverRef = FirebaseDatabase.getInstance()
+                    .getReference("Users/Drivers/" + driverFoundID + "/customerRequest");
+            driverRef.removeValue();
+        }
+
+        String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        customerRequestRef.child(userID).removeValue();
+
+        runOnUiThread(() -> {
+            mDriverInfo.setVisibility(View.GONE);
+            mDriverName.setText("");
+            mDriverPhone.setText("");
+            mDriverCar.setText("");
+            mDriverProfileImage.setImageResource(R.drawable.account_circle_24);
+            mRequest.setText("Request Ride");
+            mRequest.setEnabled(true);
+
+            if (mDriverMarker != null) {
+                mDriverMarker.remove();
+                mDriverMarker = null;
+            }
+            if (pickupMarker != null) {
+                pickupMarker.remove();
+                pickupMarker = null;
+            }
+            if (destinationMarker != null) {
+                destinationMarker.remove();
+                destinationMarker = null;
+            }
+
+            erasePolylines();
+        });
+
+        currentRideState = RideState.NONE;
+        driverFound = false;
+        driverFoundID = "";
     }
 
     private void handleDriverUnavailable() {
@@ -560,7 +791,6 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     }
 
     private void cleanupRide() {
-        // Remove any pending timeout callbacks
         searchTimeoutHandler.removeCallbacksAndMessages(null);
 
         if (geoQuery != null) {
@@ -583,7 +813,14 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                     mDriverMarker.remove();
                     mDriverMarker = null;
                 }
-                // ... same for other markers ...
+                if (pickupMarker != null) {
+                    pickupMarker.remove();
+                    pickupMarker = null;
+                }
+                if (destinationMarker != null) {
+                    destinationMarker.remove();
+                    destinationMarker = null;
+                }
             } catch (Exception e) {
                 Log.e("Markers", "Error removing markers", e);
             }
@@ -628,38 +865,105 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     }
 
     private void setupLocationUpdates() {
+        if (!isLocationEnabled()) {
+            Toast.makeText(this, "Please enable location services", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
                 .setWaitForAccurateLocation(false)
                 .setMinUpdateIntervalMillis(5000)
+                .setMaxUpdateDelayMillis(10000)
                 .build();
 
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
-                if (locationResult == null) return;
-                for (Location location : locationResult.getLocations()) {
-                    if (location != null) {
-                        lastLocation = location;
-                        LatLng userLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 15));
-                    }
+                if (locationResult == null || mMap == null) {
+                    Log.e(TAG, "Null location result or map");
+                    return;
+                }
+
+                Location location = locationResult.getLastLocation();
+                if (location != null) {
+                    lastLocation = location;
+                    customerCurrentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                    updatePickupMarker(customerCurrentLocation);
+                    updateRoute();
                 }
             }
         };
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+        try {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
+            }
+        } catch (SecurityException e) {
+            Log.e(TAG, "Location permission exception", e);
+            Toast.makeText(this, "Location permission error", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void updateCurrentLocationMarker(LatLng location) {
+        runOnUiThread(() -> {
+            if (pickupMarker != null) {
+                pickupMarker.remove();
+            }
+            pickupMarker = mMap.addMarker(new MarkerOptions()
+                    .position(location)
+                    .title("Your Location")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+        });
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Clean up the handler to prevent memory leaks
         searchTimeoutHandler.removeCallbacksAndMessages(null);
         cleanupRide();
         if (fusedLocationProviderClient != null && locationCallback != null) {
             fusedLocationProviderClient.removeLocationUpdates(locationCallback);
         }
+    }
+
+    // RoutingListener methods
+    @Override
+    public void onRoutingFailure(RouteException e) {
+        Log.e(TAG, "Routing failed: " + e.getMessage());
+        Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onRoutingStart() {}
+
+    @Override
+    public void onRoutingSuccess(ArrayList<Route> routes, int shortestRouteIndex) {
+        if (polylines.size() > 0) {
+            for (Polyline poly : polylines) {
+                poly.remove();
+            }
+            polylines.clear();
+        }
+
+        for (Route route : routes) {
+            PolylineOptions polyOptions = new PolylineOptions();
+            polyOptions.color(Color.BLUE);
+            polyOptions.width(10);
+            polyOptions.addAll(route.getPoints());
+            Polyline polyline = mMap.addPolyline(polyOptions);
+            polylines.add(polyline);
+        }
+    }
+
+    @Override
+    public void onRoutingCancelled() {}
+
+    private void erasePolylines() {
+        runOnUiThread(() -> {
+            for (Polyline line : polylines) {
+                line.remove();
+            }
+            polylines.clear();
+        });
     }
 }
