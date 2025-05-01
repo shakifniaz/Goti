@@ -6,7 +6,6 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -41,7 +40,7 @@ import java.util.Map;
 
 public class CustomerSettingsActivity extends AppCompatActivity {
 
-    private EditText mNameField, mPhoneField;
+    private EditText mNameField, mPhoneField, mDobField;
     private Button mBack, mConfirm;
     private ImageView mProfileImage;
     private FirebaseAuth mAuth;
@@ -49,7 +48,6 @@ public class CustomerSettingsActivity extends AppCompatActivity {
     private String userID;
     private Uri resultUri;
     private static final int PICK_IMAGE_REQUEST = 1;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +63,7 @@ public class CustomerSettingsActivity extends AppCompatActivity {
         // Initialize views
         mNameField = findViewById(R.id.name);
         mPhoneField = findViewById(R.id.customerPhone);
+        mDobField = findViewById(R.id.dob); // Add this line to initialize dob field
         mProfileImage = findViewById(R.id.profileImage);
         mBack = findViewById(R.id.back);
         mConfirm = findViewById(R.id.confirm);
@@ -80,13 +79,13 @@ public class CustomerSettingsActivity extends AppCompatActivity {
         // Load user info
         getUserInfo();
 
+        // Set click listeners
         mProfileImage.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK);
             intent.setType("image/*");
             startActivityForResult(intent, PICK_IMAGE_REQUEST);
         });
 
-        // Set click listeners
         mConfirm.setOnClickListener(v -> saveUserInformation());
         mBack.setOnClickListener(v -> finish());
     }
@@ -105,6 +104,11 @@ public class CustomerSettingsActivity extends AppCompatActivity {
                     if (snapshot.hasChild("phone")) {
                         String phone = snapshot.child("phone").getValue(String.class);
                         mPhoneField.setText(phone);
+                    }
+                    // Get dob if exists
+                    if (snapshot.hasChild("dob")) {
+                        String dob = snapshot.child("dob").getValue(String.class);
+                        mDobField.setText(dob);
                     }
                     // Get profile image if exists
                     if (snapshot.hasChild("profileImageUrl")) {
@@ -128,6 +132,7 @@ public class CustomerSettingsActivity extends AppCompatActivity {
     private void saveUserInformation() {
         String name = mNameField.getText().toString().trim();
         String phone = mPhoneField.getText().toString().trim();
+        String dob = mDobField.getText().toString().trim(); // Get dob value
 
         // Validate inputs
         if (name.isEmpty()) {
@@ -142,16 +147,22 @@ public class CustomerSettingsActivity extends AppCompatActivity {
             return;
         }
 
+        if (dob.isEmpty()) {
+            mDobField.setError("Date of birth is required");
+            mDobField.requestFocus();
+            return;
+        }
+
         if (resultUri != null) {
             // If new image is selected, upload it first
-            uploadProfileImage(name, phone);
+            uploadProfileImage(name, phone, dob);
         } else {
             // If no new image, just update text data
-            updateUserData(name, phone, null);
+            updateUserData(name, phone, dob, null);
         }
     }
 
-    private void uploadProfileImage(String name, String phone) {
+    private void uploadProfileImage(String name, String phone, String dob) {
         // Get reference to Firebase Storage
         StorageReference filePath = FirebaseStorage.getInstance().getReference()
                 .child("profile_images")
@@ -183,7 +194,7 @@ public class CustomerSettingsActivity extends AppCompatActivity {
                 progressDialog.dismiss();
                 if (task.isSuccessful()) {
                     Uri downloadUri = task.getResult();
-                    updateUserData(name, phone, downloadUri.toString());
+                    updateUserData(name, phone, dob, downloadUri.toString());
                 } else {
                     Toast.makeText(CustomerSettingsActivity.this,
                             "Upload failed: " + task.getException().getMessage(),
@@ -195,10 +206,11 @@ public class CustomerSettingsActivity extends AppCompatActivity {
         }
     }
 
-    private void updateUserData(String name, String phone, String profileImageUrl) {
+    private void updateUserData(String name, String phone, String dob, String profileImageUrl) {
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("name", name);
         userInfo.put("phone", phone);
+        userInfo.put("dob", dob); // Add dob to the update
 
         if (profileImageUrl != null) {
             userInfo.put("profileImageUrl", profileImageUrl);
