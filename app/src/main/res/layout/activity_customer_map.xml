@@ -16,38 +16,53 @@
     <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="start"
             android:id="@+id/buttons"
-            android:orientation="horizontal">
-            <Button
-                android:layout_weight="1"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:id="@+id/logout"
-                android:text="Logout" />
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp">
 
             <Button
-                android:layout_weight="1"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:id="@+id/settings"
-                android:text="Settings" />
+                android:id="@+id/logout"
+                android:layout_width="wrap_content"
+                android:layout_height="45dp"
+                android:background="@drawable/button3"
+                android:text="Logout"
+                android:layout_marginStart="13dp"
+                android:layout_marginEnd="12dp"
+                android:paddingLeft="15dp"
+                android:paddingRight="15dp"
+                android:textColor="@color/white"
+                />
+
             <Button
-                android:layout_weight="1"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:layout_height="45dp"
+                android:id="@+id/settings"
+                android:text="Settings"
+                android:background="@drawable/button3"
+                android:textColor="@color/white"
+                android:layout_marginEnd="12dp"
+                android:paddingLeft="15dp"
+                android:paddingRight="15dp"/>
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="45dp"
                 android:id="@+id/history"
-                android:text="history" />
+                android:text="history"
+                android:background="@drawable/button3"
+                android:textColor="@color/white"
+                android:paddingLeft="15dp"
+                android:paddingRight="15dp"
+                />
         </LinearLayout>
 
         <androidx.cardview.widget.CardView
             android:layout_below="@+id/buttons"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-
             android:layout_margin="20sp">
 
             <fragment
@@ -55,19 +70,22 @@
                 android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:focusableInTouchMode="true"/>
+                android:focusableInTouchMode="true"
+                />
         </androidx.cardview.widget.CardView>
 
     </RelativeLayout>
+
     <TextView
-        android:layout_margin="150dp"
         android:id="@+id/fareEstimate"
-        android:layout_width="match_parent"
+        android:layout_width="123dp"
         android:layout_height="wrap_content"
-        android:text="Fare estimate: --"
-        android:textColor="@color/black"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="150dp"
         android:padding="8dp"
-        />
+        android:text="Fare estimate: --"
+        android:textColor="@color/black" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -123,39 +141,49 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/white"
             android:orientation="vertical">
             <RadioGroup
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/radioGroup"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@color/white"
+                >
 
                 <RadioButton
                     android:id="@+id/GotiX"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="GotiX"
-                    android:textColor="@color/black"/>
+                    android:textColor="@color/black"
+                    android:buttonTint="@color/new_color"/>
                 <RadioButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="GotiBlack"
                     android:id="@+id/GotiBlack"
-                    android:textColor="@color/black"/>
+                    android:layout_marginStart="15dp"
+                    android:layout_marginEnd="15dp"
+                    android:textColor="@color/black"
+                    android:buttonTint="@color/new_color"/>
                 <RadioButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="GotiXl"
                     android:id="@+id/GotiXl"
-                    android:textColor="@color/black"/>
+                    android:textColor="@color/black"
+                    android:buttonTint="@color/new_color"/>
             </RadioGroup>
 
             <Button
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Request Ride"
-                android:id="@+id/request" />
+                android:textSize="18sp"
+                android:id="@+id/request"
+                android:background="@drawable/button2"
+                android:textColor="@color/white"/>
         </LinearLayout>
 
     </LinearLayout>
