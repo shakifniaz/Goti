@@ -144,35 +144,74 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         rideRef.setValue(status);
     }
 
+    // In DriverMapActivity.java, update the recordRideCompletion method:
     private void recordRideCompletion() {
-        if (userID == null || customerID == null) return;
+        if (userID == null || customerID == null) {
+            Log.e(TAG, "userID or customerID is null - cannot record ride");
+            return;
+        }
 
-        // Calculate fare based on distance and time
-        double distance = calculateRideDistance();
-        double fare = calculateFare(distance);
+        Log.d(TAG, "Recording ride completion for customer: " + customerID);
 
-        // Create ride record
-        DatabaseReference historyRef = FirebaseDatabase.getInstance()
-                .getReference("RideHistory").push();
+        DatabaseReference driverRef = FirebaseDatabase.getInstance()
+                .getReference("Users/Drivers/" + userID);
+        DatabaseReference customerRef = FirebaseDatabase.getInstance()
+                .getReference("Users/Customers/" + customerID);
 
-        Map<String, Object> rideMap = new HashMap<>();
-        rideMap.put("driverId", userID);
-        rideMap.put("customerId", customerID);
-        rideMap.put("distance", distance);
-        rideMap.put("fare", fare);
-        rideMap.put("timestamp", ServerValue.TIMESTAMP);
+        driverRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot driverSnapshot) {
+                customerRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot customerSnapshot) {
+                        double distance = calculateRideDistance();
+                        double fare = calculateFare(distance);
 
-        historyRef.setValue(rideMap);
+                        DatabaseReference historyRef = FirebaseDatabase.getInstance()
+                                .getReference("RideHistory").push();
+
+                        Map<String, Object> rideMap = new HashMap<>();
+                        rideMap.put("driverId", userID);
+                        rideMap.put("customerId", customerID);
+                        rideMap.put("driverName", driverSnapshot.child("name").getValue(String.class));
+                        rideMap.put("customerName", customerSnapshot.child("name").getValue(String.class));
+                        rideMap.put("carType", driverSnapshot.child("car").getValue(String.class));
+                        rideMap.put("destination", destination);
+                        rideMap.put("distance", distance);
+                        rideMap.put("fare", fare);
+                        rideMap.put("timestamp", ServerValue.TIMESTAMP);
+
+                        Log.d(TAG, "Saving ride history: " + rideMap.toString());
+
+                        historyRef.setValue(rideMap)
+                                .addOnSuccessListener(aVoid -> Log.d(TAG, "Ride history recorded successfully"))
+                                .addOnFailureListener(e -> Log.e(TAG, "Failed to record ride history", e));
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        Log.e(TAG, "Error getting customer info", error.toException());
+                    }
+                });
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e(TAG, "Error getting driver info", error.toException());
+            }
+        });
     }
 
     private double calculateRideDistance() {
-        // Implement your distance calculation logic
-        return 0.0;
+        // Implement your actual distance calculation logic here
+        // This is a placeholder - you should calculate based on actual route
+        return 5.0; // 5 km as example
     }
 
     private double calculateFare(double distance) {
-        // Implement your fare calculation logic
-        return 0.0;
+        // Implement your actual fare calculation logic here
+        // Base fare + (distance * rate per km)
+        return 3.0 + (distance * 1.5); // $3 base + $1.5 per km as example
     }
 
     private void initializeViews() {

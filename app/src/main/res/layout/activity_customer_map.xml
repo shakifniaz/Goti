@@ -17,28 +17,37 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/logout"
-            android:text="Logout"
-            android:layout_marginTop="15dp"
-            android:layout_marginLeft="15dp"/>
-
-        <Button
-            android:layout_alignParentRight="true"
-            android:layout_gravity="right"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/settings"
-            android:text="Settings"
-            android:layout_marginTop="15dp"
-            android:layout_marginLeft="15dp"/>
-
-        <androidx.cardview.widget.CardView
-            android:layout_below="@+id/settings"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:id="@+id/buttons"
+            android:orientation="horizontal">
+            <Button
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:id="@+id/logout"
+                android:text="Logout" />
+
+            <Button
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:id="@+id/settings"
+                android:text="Settings" />
+            <Button
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:id="@+id/history"
+                android:text="history" />
+        </LinearLayout>
+
+        <androidx.cardview.widget.CardView
+            android:layout_below="@+id/buttons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+
             android:layout_margin="20sp">
 
             <fragment
@@ -46,9 +55,19 @@
                 android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:focusableInTouchMode="true"/> <!-- Add this line -->
+                android:focusableInTouchMode="true"/>
         </androidx.cardview.widget.CardView>
+
     </RelativeLayout>
+    <TextView
+        android:layout_margin="150dp"
+        android:id="@+id/fareEstimate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Fare estimate: --"
+        android:textColor="@color/black"
+        android:padding="8dp"
+        />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
