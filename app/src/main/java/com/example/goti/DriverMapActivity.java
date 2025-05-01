@@ -750,9 +750,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         } else {
             requestLocationPermissions();
         }
-
-        // 4. Test marker placement (temporary - remove after verification)
-        testMarkerPlacement();
+        //testMarkerPlacement();
     }
 
     // New helper method to redraw existing markers
@@ -806,84 +804,84 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         });
     }
 
-    // Temporary test method (remove after verification)
-    private void testMarkerPlacement() {
-        new Handler().postDelayed(() -> {
-            if (mMap != null) {
-                // Clear any existing test markers/polylines first
-                erasePolylines();
-
-                // Test locations (San Francisco coordinates)
-                LatLng testPickup = new LatLng(37.7749, -122.4194);  // SF downtown
-                LatLng testDestination = new LatLng(37.3352, -122.0096);  // Cupertino
-
-                // Add pickup marker (red)
-                mMap.addMarker(new MarkerOptions()
-                        .position(testPickup)
-                        .title("TEST PICKUP")
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
-
-                // Add destination marker (blue)
-                mMap.addMarker(new MarkerOptions()
-                        .position(testDestination)
-                        .title("TEST DESTINATION")
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
-
-                // Zoom to show both markers
-                LatLngBounds bounds = new LatLngBounds.Builder()
-                        .include(testPickup)
-                        .include(testDestination)
-                        .build();
-                mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100));
-
-                // Test route drawing
-                new Thread(() -> {
-                    try {
-                        GeoApiContext context = new GeoApiContext.Builder()
-                                .apiKey("AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q")
-                                .build();
-
-                        DirectionsResult result = DirectionsApi.newRequest(context)
-                                .origin(new com.google.maps.model.LatLng(
-                                        testPickup.latitude,
-                                        testPickup.longitude))
-                                .destination(new com.google.maps.model.LatLng(
-                                        testDestination.latitude,
-                                        testDestination.longitude))
-                                .mode(TravelMode.DRIVING)
-                                .await();
-
-                        runOnUiThread(() -> {
-                            if (result.routes != null && result.routes.length > 0) {
-                                List<LatLng> decodedPath = PolyUtil.decode(
-                                        result.routes[0].overviewPolyline.getEncodedPath());
-
-                                PolylineOptions polylineOptions = new PolylineOptions()
-                                        .addAll(decodedPath)
-                                        .color(Color.GREEN)  // Use green for test route
-                                        .width(12);
-
-                                polylines.add(mMap.addPolyline(polylineOptions));
-                                Log.d(TAG, "Test route drawn successfully");
-                            } else {
-                                Log.e(TAG, "No routes returned in test");
-                            }
-                        });
-                    } catch (Exception e) {
-                        Log.e(TAG, "Test route failed: " + e.getMessage());
-                        runOnUiThread(() ->
-                                Toast.makeText(this,
-                                        "Test route failed: " + e.getMessage(),
-                                        Toast.LENGTH_LONG).show());
-                    }
-                }).start();
-
-                Log.d(TAG, "Test markers placed at:\n" +
-                        "Pickup: " + testPickup + "\n" +
-                        "Destination: " + testDestination);
-            }
-        }, 3000);  // 3 second delay to ensure map is fully loaded
-    }
+//    // Temporary test method (remove after verification)
+//    private void testMarkerPlacement() {
+//        new Handler().postDelayed(() -> {
+//            if (mMap != null) {
+//                // Clear any existing test markers/polylines first
+//                erasePolylines();
+//
+//                // Test locations (San Francisco coordinates)
+//                LatLng testPickup = new LatLng(37.7749, -122.4194);  // SF downtown
+//                LatLng testDestination = new LatLng(37.3352, -122.0096);  // Cupertino
+//
+//                // Add pickup marker (red)
+//                mMap.addMarker(new MarkerOptions()
+//                        .position(testPickup)
+//                        .title("TEST PICKUP")
+//                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+//
+//                // Add destination marker (blue)
+//                mMap.addMarker(new MarkerOptions()
+//                        .position(testDestination)
+//                        .title("TEST DESTINATION")
+//                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+//
+//                // Zoom to show both markers
+//                LatLngBounds bounds = new LatLngBounds.Builder()
+//                        .include(testPickup)
+//                        .include(testDestination)
+//                        .build();
+//                mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100));
+//
+//                // Test route drawing
+//                new Thread(() -> {
+//                    try {
+//                        GeoApiContext context = new GeoApiContext.Builder()
+//                                .apiKey("AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q")
+//                                .build();
+//
+//                        DirectionsResult result = DirectionsApi.newRequest(context)
+//                                .origin(new com.google.maps.model.LatLng(
+//                                        testPickup.latitude,
+//                                        testPickup.longitude))
+//                                .destination(new com.google.maps.model.LatLng(
+//                                        testDestination.latitude,
+//                                        testDestination.longitude))
+//                                .mode(TravelMode.DRIVING)
+//                                .await();
+//
+//                        runOnUiThread(() -> {
+//                            if (result.routes != null && result.routes.length > 0) {
+//                                List<LatLng> decodedPath = PolyUtil.decode(
+//                                        result.routes[0].overviewPolyline.getEncodedPath());
+//
+//                                PolylineOptions polylineOptions = new PolylineOptions()
+//                                        .addAll(decodedPath)
+//                                        .color(Color.GREEN)  // Use green for test route
+//                                        .width(12);
+//
+//                                polylines.add(mMap.addPolyline(polylineOptions));
+//                                Log.d(TAG, "Test route drawn successfully");
+//                            } else {
+//                                Log.e(TAG, "No routes returned in test");
+//                            }
+//                        });
+//                    } catch (Exception e) {
+//                        Log.e(TAG, "Test route failed: " + e.getMessage());
+//                        runOnUiThread(() ->
+//                                Toast.makeText(this,
+//                                        "Test route failed: " + e.getMessage(),
+//                                        Toast.LENGTH_LONG).show());
+//                    }
+//                }).start();
+//
+//                Log.d(TAG, "Test markers placed at:\n" +
+//                        "Pickup: " + testPickup + "\n" +
+//                        "Destination: " + testDestination);
+//            }
+//        }, 3000);  // 3 second delay to ensure map is fully loaded
+//    }
 
     private void enableMyLocation() {
         try {
