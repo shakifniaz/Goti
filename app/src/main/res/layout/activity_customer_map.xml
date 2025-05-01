@@ -76,15 +76,7 @@
 
     </RelativeLayout>
 
-    <TextView
-        android:id="@+id/fareEstimate"
-        android:layout_width="123dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="150dp"
-        android:padding="8dp"
-        android:text="Fare estimate: --"
-        android:textColor="@color/black" />
+
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -142,6 +134,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+            <TextView
+                android:id="@+id/fareEstimate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:layout_gravity="center"
+                android:layout_marginBottom="10dp"
+                android:gravity="center"
+                android:text="Fare estimate: --"
+                android:background="@drawable/button5"
+                android:textColor="@color/white" />
             <RadioGroup
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

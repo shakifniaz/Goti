@@ -61,7 +61,7 @@
                 android:paddingLeft="40sp">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="250dp"
                     android:layout_height="wrap_content"
                     android:id="@+id/customerDestination"
                     android:textColor="@color/new_color"
@@ -70,7 +70,7 @@
                     android:text="Destination: --"/>
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="250dp"
                     android:layout_height="wrap_content"
                     android:id="@+id/customerName"
                     android:textColor="@color/new_color"
@@ -78,7 +78,7 @@
                     android:paddingTop="10sp"/>
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="250dp"
                     android:layout_height="wrap_content"
                     android:id="@+id/customerPhone"
                     android:textColor="@color/new_color"
