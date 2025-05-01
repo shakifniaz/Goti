@@ -35,6 +35,13 @@ public class LoginActivity extends AppCompatActivity {
         mPassword = findViewById(R.id.password);
         mLogin = findViewById(R.id.loginButton);
 
+        // Add Forgot Password Click Listener
+        TextView forgotPasswordLink = findViewById(R.id.forgotpassword);
+        forgotPasswordLink.setOnClickListener(v -> {
+            startActivity(new Intent(LoginActivity.this, ForgotPasswordActivity.class));
+        });
+
+        // Rest of your existing code...
         mLogin.setOnClickListener(v -> {
             String email = mEmail.getText().toString();
             String password = mPassword.getText().toString();
@@ -61,7 +68,6 @@ public class LoginActivity extends AppCompatActivity {
             startActivity(new Intent(LoginActivity.this, MainActivity.class));
             finish();
         });
-
     }
 
     private void checkUserType(String userId) {
