@@ -138,7 +138,10 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         mLogout = findViewById(R.id.logout);
         mSettings = findViewById(R.id.settings);
         mHistory = findViewById(R.id.history);
+
         mFareEstimate = findViewById(R.id.fareEstimate);
+        mFareEstimate.setText("Fare estimate: Tk. 0.00"); // Initialize with 0
+        mFareEstimate.setVisibility(View.GONE);
 
         mDriverInfo = findViewById(R.id.driverInfo);
         mDriverProfileImage = findViewById(R.id.driverProfileImage);
@@ -211,7 +214,11 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     }
 
     private void calculateFareEstimate() {
-        if (lastLocation == null || destinationLatLng == null) {
+        // Only calculate if we have both locations and a destination is selected
+        if (lastLocation == null || destinationLatLng == null || destinationLatLng.equals(new LatLng(0.0, 0.0))) {
+            runOnUiThread(() -> {
+                mFareEstimate.setVisibility(View.GONE);
+            });
             return;
         }
 
@@ -239,7 +246,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             }
         }
 
-        final double finalEstimatedFare = estimatedFare; // Create a final copy of the variable
+        final double finalEstimatedFare = estimatedFare;
         runOnUiThread(() -> {
             mFareEstimate.setVisibility(View.VISIBLE);
             mFareEstimate.setText(String.format("Fare estimate: Tk. %.2f", finalEstimatedFare));
@@ -362,6 +369,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                         updateDestinationMarker();
                         if (lastLocation != null) {
                             drawRouteToDestination();
+                            calculateFareEstimate(); // Update fare when destination is selected
                         }
                     }
                 } catch (Exception e) {
@@ -414,6 +422,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         });
     }
 
+
     private void startRideRequest() {
         if (lastLocation == null) {
             Toast.makeText(this, "Location not available yet", Toast.LENGTH_SHORT).show();
@@ -439,7 +448,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
             HashMap<String, Object> customerRequest = new HashMap<>();
             customerRequest.put("l", Arrays.asList(lastLocation.getLatitude(), lastLocation.getLongitude()));
-            customerRequest.put("destinationName", destinationName);
+            customerRequest.put("destinationName", destinationName); // Make sure this is set
             customerRequest.put("destinationLatLng", Arrays.asList(destinationLatLng.latitude, destinationLatLng.longitude));
             customerRequest.put("service", requestService);
             customerRequest.put("status", "requesting");
@@ -670,7 +679,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         });
     }
 
-    private void endRide(){
+    private void endRide() {
         if (driveHasEndedRefListener != null && driveHasEndedRef != null) {
             driveHasEndedRef.removeEventListener(driveHasEndedRefListener);
         }
@@ -692,8 +701,12 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             mDriverProfileImage.setImageResource(R.drawable.account_circle_24);
             mRequest.setText("Request Ride");
             mRequest.setEnabled(true);
+
+            // Reset fare estimate
+            mFareEstimate.setText("Fare estimate: Tk. 0.00");
             mFareEstimate.setVisibility(View.GONE);
 
+            // Clear all markers and polylines
             if (mDriverMarker != null) {
                 mDriverMarker.remove();
                 mDriverMarker = null;
@@ -708,6 +721,17 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             }
 
             erasePolylines();
+
+            // Reset the destination information
+            destinationName = null;
+            destinationLatLng = new LatLng(0.0, 0.0); // Reset to default
+
+            // Reset the autocomplete field
+            AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
+                    getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
+            if (autocompleteFragment != null) {
+                autocompleteFragment.setText("");
+            }
         });
 
         currentRideState = RideState.NONE;
@@ -818,6 +842,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                 .addOnSuccessListener(aVoid -> {
                     Log.d("CancelRide", "Customer request removed");
                     clearDriverAssignment();
+                    resetRideRequest();
                 })
                 .addOnFailureListener(e -> {
                     Log.e("CancelRide", "Error removing request", e);
@@ -832,14 +857,26 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             driverRef.removeValue();
         }
 
-        mDriverInfo.setVisibility(View.GONE);
-        mDriverName.setText("");
-        mDriverPhone.setText("");
-        mDriverCar.setText("");
-        mDriverProfileImage.setImageResource(R.drawable.account_circle_24);
-        mFareEstimate.setVisibility(View.GONE);
+        // Clear UI elements
+        runOnUiThread(() -> {
+            mDriverInfo.setVisibility(View.GONE);
+            mDriverName.setText("");
+            mDriverPhone.setText("");
+            mDriverCar.setText("");
+            mDriverProfileImage.setImageResource(R.drawable.account_circle_24);
+            mFareEstimate.setText("Fare estimate: Tk. 0.00");
+            mFareEstimate.setVisibility(View.GONE);
 
-        cleanupRide();
+            if (destinationMarker != null) {
+                destinationMarker.remove();
+                destinationMarker = null;
+            }
+            erasePolylines();
+        });
+
+        currentRideState = RideState.NONE;
+        driverFound = false;
+        driverFoundID = "";
     }
 
     private void cleanupRide() {
@@ -895,9 +932,11 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     }
 
     private void resetRideRequest() {
-        currentRideState = RideState.NONE;
-        mRequest.setText("Request Ride");
-        mFareEstimate.setVisibility(View.GONE);
+        runOnUiThread(() -> {
+            mRequest.setText("Request Ride");
+            mRequest.setEnabled(true);
+            mFareEstimate.setVisibility(View.GONE);
+        });
     }
 
     private void requestLocationPermissions() {
@@ -942,6 +981,15 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                 if (location != null) {
                     lastLocation = location;
                     customerCurrentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+
+                    // Center map on first location
+                    if (mMap.getCameraPosition().zoom < 10) { // Only if not already zoomed in
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                                customerCurrentLocation,
+                                15f // Zoom level
+                        ));
+                    }
+
                     updatePickupMarker(customerCurrentLocation);
                     updateRoute();
                     if (destinationLatLng != null) {
@@ -976,11 +1024,47 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        // Cancel any pending search timeout
         searchTimeoutHandler.removeCallbacksAndMessages(null);
-        cleanupRide();
-        if (fusedLocationProviderClient != null && locationCallback != null) {
-            fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+
+        // Clean up ride if active
+        if (currentRideState != RideState.NONE) {
+            String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            customerRequestRef.child(userID).removeValue();
+
+            if (driverFoundID != null && !driverFoundID.isEmpty()) {
+                DatabaseReference driverRef = FirebaseDatabase.getInstance()
+                        .getReference("Users/Drivers/" + driverFoundID + "/customerRequest");
+                driverRef.removeValue();
+            }
         }
+
+        // Remove location updates
+        if (fusedLocationProviderClient != null && locationCallback != null) {
+            try {
+                fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+            } catch (Exception e) {
+                Log.e(TAG, "Error removing location updates", e);
+            }
+        }
+
+        // Remove Firebase listeners
+        if (driverLocationRefListener != null && driverLocationRef != null) {
+            driverLocationRef.removeEventListener(driverLocationRefListener);
+        }
+
+        if (driveHasEndedRefListener != null && driveHasEndedRef != null) {
+            driveHasEndedRef.removeEventListener(driveHasEndedRefListener);
+        }
+
+        if (geoQuery != null) {
+            geoQuery.removeAllListeners();
+        }
+
+        // Clear all markers and polylines
+        erasePolylines();
+        removeMarkers();
     }
 
     @Override
@@ -1022,4 +1106,14 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             polylines.clear();
         });
     }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (currentRideState != RideState.NONE) {
+            cancelRideRequest();
+        }
+    }
+
+
 }
