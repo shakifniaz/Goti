@@ -5,6 +5,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -100,28 +101,28 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         mRideStatus = findViewById(R.id.rideStatus);
         mRideStatus.setOnClickListener(v -> {
             switch(status){
+                case 0: // Available - no action
+                    break;
                 case 1: // Picked up customer
                     status = 2;
                     erasePolylines();
-
-                    // Only calculate route if we have destination
                     if (destinationLatLng != null) {
                         getRouteToMarker(destinationLatLng);
                     } else {
-                        // If we don't have destination yet, get it (which will trigger route calculation)
                         getAssignedCustomerDestination();
                     }
-
                     mRideStatus.setText("Complete Ride");
                     updateRideStatus("enroute");
                     break;
-
                 case 2: // Completed ride
                     recordRideCompletion();
                     mRideStatus.setText("Available");
                     status = 0;
                     clearCustomerInfo();
                     updateRideStatus("completed");
+                    break;
+                default: // Add cancel option
+                    cancelRideFromDriver();
                     break;
             }
         });
@@ -296,22 +297,20 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             return;
         }
 
-        // Clean up previous listener if exists
-        cleanupAssignmentListener();
-
         assignedCustomerRef = FirebaseDatabase.getInstance()
                 .getReference("Users/Drivers/" + userID + "/customerRequest");
 
-        assignedCustomerRefListener = new ValueEventListener() {
+        assignedCustomerRefListener = assignedCustomerRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 try {
                     if (!dataSnapshot.exists()) {
+                        // No customer assigned - reset state
                         handleRideEnded();
                         return;
                     }
 
-                    // Check for cancellation status
+                    // Check for cancellation status first
                     if (dataSnapshot.hasChild("status")) {
                         String status = dataSnapshot.child("status").getValue(String.class);
                         if ("canceled".equals(status)) {
@@ -320,19 +319,40 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                         }
                     }
 
+                    // Get customer ID if exists
                     String newCustomerID = dataSnapshot.child("customerRideID").getValue(String.class);
                     if (newCustomerID == null || newCustomerID.isEmpty()) {
                         handleRideEnded();
                         return;
                     }
 
-                    // Only update if this is a different customer
-                    if (!newCustomerID.equals(customerID)) {
-                        customerID = newCustomerID;
-                        showCustomerInfo();
-                    }
+                    // Check if customer request still exists
+                    DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
+                            .getReference("CustomerRequest/" + newCustomerID);
+
+                    customerRequestRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            if (!snapshot.exists()) {
+                                handleRideCanceled();
+                                return;
+                            }
+
+                            // Only update if this is a different customer
+                            if (!newCustomerID.equals(customerID)) {
+                                customerID = newCustomerID;
+                                showCustomerInfo();
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                            Log.e(TAG, "Error checking customer request", error.toException());
+                        }
+                    });
                 } catch (Exception e) {
                     Log.e(TAG, "Error in customer assignment listener", e);
+                    handleRideEnded();
                 }
             }
 
@@ -340,9 +360,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 Log.e(TAG, "Error checking assignment", databaseError.toException());
             }
-        };
-
-        assignedCustomerRef.addValueEventListener(assignedCustomerRefListener);
+        });
     }
 
     private void handleRideCanceled() {
@@ -363,11 +381,51 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                 driverRef.removeValue();
             }
 
+            // Also remove the customer's request if it still exists
+            if (customerID != null && !customerID.isEmpty()) {
+                DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
+                        .getReference("CustomerRequest/" + customerID);
+                customerRequestRef.removeValue();
+            }
+
             // Update driver availability
             if (mLastLocation != null) {
                 updateDriverLocation(mLastLocation);
             }
         });
+    }
+    private void cancelRideFromDriver() {
+        if (customerID == null || customerID.isEmpty()) {
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Cancel Ride")
+                .setMessage("Are you sure you want to cancel this ride?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    // Update status in both customer and driver nodes
+                    Map<String, Object> updateMap = new HashMap<>();
+                    updateMap.put("status", "canceled");
+
+                    // Update customer request
+                    DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
+                            .getReference("CustomerRequest/" + customerID);
+                    customerRequestRef.updateChildren(updateMap);
+
+                    // Update driver's assignment
+                    if (userID != null) {
+                        DatabaseReference driverRef = FirebaseDatabase.getInstance()
+                                .getReference("Users/Drivers/" + userID + "/customerRequest");
+                        driverRef.updateChildren(updateMap)
+                                .addOnSuccessListener(aVoid -> {
+                                    handleRideCanceled();
+                                });
+                    } else {
+                        handleRideCanceled();
+                    }
+                })
+                .setNegativeButton("No", null)
+                .show();
     }
 
     private void cleanupAssignmentListener() {

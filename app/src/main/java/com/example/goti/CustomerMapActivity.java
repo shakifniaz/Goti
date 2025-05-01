@@ -705,12 +705,12 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         customerRequestRef.child(userID).removeValue();
 
         runOnUiThread(() -> {
-            // Reset UI
+            // Reset UI completely
             mDriverInfo.setVisibility(View.GONE);
             mRequest.setText("Request Ride");
             mRequest.setEnabled(true);
 
-            // Clear markers and routes
+            // Clear all markers and routes
             if (mDriverMarker != null) mDriverMarker.remove();
             if (pickupMarker != null) pickupMarker.remove();
             if (destinationMarker != null) destinationMarker.remove();
@@ -719,15 +719,24 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             // Reset autocomplete
             AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
                     getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
-            if (autocompleteFragment != null) autocompleteFragment.setText("");
+            if (autocompleteFragment != null) {
+                autocompleteFragment.setText("");
+                autocompleteFragment.setHint("Enter destination");
+            }
+
+            // Reset destination variables
+            destinationName = null;
+            destinationLatLng = new LatLng(0.0, 0.0);
+
+            // Reset fare estimate
+            mFareEstimate.setText("Fare estimate: Tk. 0.00");
+            mFareEstimate.setVisibility(View.GONE);
         });
 
         // Reset all state variables
         currentRideState = RideState.NONE;
         driverFound = false;
         driverFoundID = "";
-        destinationName = null;
-        destinationLatLng = new LatLng(0.0, 0.0);
         radius = 1;
     }
 
@@ -833,21 +842,36 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     private void cancelRideRequest() {
         String userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        customerRequestRef.child(userID).removeValue()
+        // First update the status to "canceled" in both customer and driver nodes
+        Map<String, Object> updateMap = new HashMap<>();
+        updateMap.put("status", "canceled");
+
+        // Update customer request
+        customerRequestRef.child(userID).updateChildren(updateMap)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d("CancelRide", "Customer request removed");
-                    // Clear driver assignment with status update
+                    Log.d("CancelRide", "Customer ride status updated to canceled");
+
+                    // If we have a driver assigned, update their node too
                     if (driverFoundID != null && !driverFoundID.isEmpty()) {
                         DatabaseReference driverRef = FirebaseDatabase.getInstance()
                                 .getReference("Users/Drivers/" + driverFoundID + "/customerRequest");
-                        Map<String, Object> updateMap = new HashMap<>();
-                        updateMap.put("status", "canceled");
-                        driverRef.updateChildren(updateMap);
+
+                        driverRef.updateChildren(updateMap)
+                                .addOnSuccessListener(aVoid2 -> {
+                                    Log.d("CancelRide", "Driver assignment updated with cancellation");
+                                    // Reset everything locally
+                                    endRide();
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e("CancelRide", "Failed to update driver assignment", e);
+                                    endRide(); // Still reset locally even if Firebase update fails
+                                });
+                    } else {
+                        endRide();
                     }
-                    resetRideRequest();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("CancelRide", "Error removing request", e);
+                    Log.e("CancelRide", "Error updating customer status", e);
                     Toast.makeText(this, "Failed to cancel ride", Toast.LENGTH_SHORT).show();
                 });
     }
