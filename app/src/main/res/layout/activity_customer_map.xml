@@ -83,6 +83,17 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:layout_gravity="bottom">
+        <TextView
+            android:id="@+id/fareEstimate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="10dp"
+            android:gravity="center"
+            android:text="Fare estimate: --"
+            android:background="@drawable/button5"
+            android:textColor="@color/white" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -92,8 +103,8 @@
             android:background="@color/white"
             android:visibility="gone">
             <ImageView
-                android:layout_width="100sp"
-                android:layout_height="100sp"
+                android:layout_width="120sp"
+                android:layout_height="120sp"
                 android:id="@+id/driverProfileImage"
                 android:src="@drawable/account_circle_24"
                 android:padding="20sp"
@@ -102,31 +113,39 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingLeft="40sp">
+                android:paddingLeft="10sp">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="250dp"
+                    android:layout_height="wrap_content"
+                    android:text="Driver Details : "
+                    android:textSize="18dp"
+                    android:paddingBottom="5dp"
+                    android:textColor="@color/new_color"
+                    />
+                <TextView
+                    android:layout_width="250dp"
                     android:layout_height="wrap_content"
                     android:id="@+id/driverName"
-                    android:textColor="@color/black"
-                    android:paddingBottom="10sp"
-                    android:paddingTop="20sp"/>
+                    android:textColor="@color/new_color"
+                    android:paddingBottom="5dp"
+                    />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="250dp"
                     android:layout_height="wrap_content"
                     android:id="@+id/driverPhone"
-                    android:textColor="@color/black"
-                    android:paddingBottom="10sp"
-                    android:paddingTop="20sp"/>
+                    android:textColor="@color/new_color"
+                    android:paddingBottom="5dp"
+                    />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="250dp"
                     android:layout_height="wrap_content"
                     android:id="@+id/driverCar"
-                    android:textColor="@color/black"
-                    android:paddingBottom="10sp"
-                    android:paddingTop="20sp"/>
+                    android:textColor="@color/new_color"
+                    android:paddingBottom="5dp"
+                    />
             </LinearLayout>
         </LinearLayout>
 
@@ -134,17 +153,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
-            <TextView
-                android:id="@+id/fareEstimate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:layout_gravity="center"
-                android:layout_marginBottom="10dp"
-                android:gravity="center"
-                android:text="Fare estimate: --"
-                android:background="@drawable/button5"
-                android:textColor="@color/white" />
+
             <RadioGroup
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
