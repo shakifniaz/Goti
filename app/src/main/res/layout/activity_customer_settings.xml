@@ -102,27 +102,6 @@
                 android:textSize="14dp"
                 android:textColor="@color/new_color"/>
         </LinearLayout>
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="15dp">
-                <TextView
-                    android:layout_width="77dp"
-                    android:layout_height="wrap_content"
-                    android:text="Address : "
-                    android:textSize="14dp"
-                    android:textColor="@color/new_color"/>
-                <EditText
-                    android:id="@+id/address"
-                    android:layout_width="240dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/border4"
-                    android:hint="Your Address"
-                    android:paddingLeft="16dp"
-                    android:textColorHint="@color/new_color"
-                    android:textSize="13dp"
-                    android:textColor="@color/new_color"/>
-            </LinearLayout>
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
