@@ -58,37 +58,20 @@ public class HistoryActivity extends AppCompatActivity {
 
     private void getUserHistoryIds() {
         DatabaseReference historyRef = FirebaseDatabase.getInstance()
-                .getReference("RideHistory");  // Directly reference RideHistory
+                .getReference("RideHistory");
 
-        historyRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        // Query only rides where customerId matches current user ID
+        Query userHistoryQuery = historyRef.orderByChild("customerId").equalTo(userId);
+
+        userHistoryQuery.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                resultsHistory.clear();  // Clear old data
+                resultsHistory.clear();
                 if (snapshot.exists()) {
                     for (DataSnapshot rideSnapshot : snapshot.getChildren()) {
-                        // Extract ride data directly
                         String rideId = rideSnapshot.getKey();
-                        Long timestamp = rideSnapshot.child("timestamp").getValue(Long.class);
-                        String time = formatTimestamp(timestamp);
-                        String destination = rideSnapshot.child("destination").getValue(String.class);
-                        Double fare = rideSnapshot.child("fare").getValue(Double.class);
-                        String driverName = rideSnapshot.child("driverName").getValue(String.class);
-                        String carType = rideSnapshot.child("carType").getValue(String.class);
-
-                        // Add to list (format fare as "$X.XX")
-                        HistoryObject historyItem = new HistoryObject(
-                                rideId,
-                                time,
-                                destination,
-                                "$" + String.format(Locale.getDefault(), "%.2f", fare),
-                                driverName,
-                                carType
-                        );
-                        resultsHistory.add(historyItem);
+                        fetchRideInformation(rideId); // Call for each ride ID
                     }
-                    mHistoryAdapter.notifyDataSetChanged();  // Refresh RecyclerView
-                } else {
-                    Log.d("HISTORY_DEBUG", "No rides found in RideHistory");
                 }
             }
 
@@ -108,22 +91,28 @@ public class HistoryActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
-                    String rideId = snapshot.getKey();
-                    String time = formatTimestamp(snapshot.child("timestamp").getValue(Long.class));
-                    String destination = snapshot.child("destination").getValue(String.class);
-                    String fare = "$" + snapshot.child("fare").getValue(Double.class);
-                    String driverName = snapshot.child("driverName").getValue(String.class);
-                    String carType = snapshot.child("carType").getValue(String.class);
+                    // Verify customerId matches current user (additional safety check)
+                    String customerId = snapshot.child("customerId").getValue(String.class);
+                    if (customerId != null && customerId.equals(userId)) {
+                        String rideId = snapshot.getKey();
+                        Long timestamp = snapshot.child("timestamp").getValue(Long.class);
+                        String time = formatTimestamp(timestamp);
 
-                    Log.d("HistoryActivity", "Ride details - " +
-                            "ID: " + rideId + ", " +
-                            "Time: " + time + ", " +
-                            "Destination: " + destination + ", " +
-                            "Fare: " + fare);
+                        // Get destination (already stored with proper name from DriverMapActivity)
+                        String destination = snapshot.child("destination").getValue(String.class);
+                        if (destination == null) {
+                            destination = "Unknown destination";
+                        }
 
-                    HistoryObject obj = new HistoryObject(rideId, time, destination, fare, driverName, carType);
-                    resultsHistory.add(obj);
-                    mHistoryAdapter.notifyDataSetChanged();
+                        Double fareValue = snapshot.child("fare").getValue(Double.class);
+                        String fare = fareValue != null ? "$" + String.format(Locale.getDefault(), "%.2f", fareValue) : "$0.00";
+                        String driverName = snapshot.child("driverName").getValue(String.class);
+                        String carType = snapshot.child("carType").getValue(String.class);
+
+                        HistoryObject obj = new HistoryObject(rideId, time, destination, fare, driverName, carType);
+                        resultsHistory.add(obj);
+                        mHistoryAdapter.notifyDataSetChanged();
+                    }
                 }
             }
 

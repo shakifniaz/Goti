@@ -111,11 +111,12 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     } else {
                         getAssignedCustomerDestination();
                     }
+                    recordRideCompletion();
                     mRideStatus.setText("Complete Ride");
                     updateRideStatus("enroute");
                     break;
                 case 2: // Completed ride
-                    recordRideCompletion();
+                    //recordRideCompletion();
                     mRideStatus.setText("Available");
                     status = 0;
                     clearCustomerInfo();
@@ -189,7 +190,14 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                                     rideMap.put("driverName", driverSnapshot.child("name").getValue(String.class));
                                     rideMap.put("customerName", customerSnapshot.child("name").getValue(String.class));
                                     rideMap.put("carType", driverSnapshot.child("car").getValue(String.class));
-                                    rideMap.put("destination", destination);
+
+                                    // Add destination information
+                                    if (destination != null && !destination.isEmpty()) {
+                                        rideMap.put("destination", destination);
+                                    } else {
+                                        rideMap.put("destination", "Unknown destination");
+                                    }
+
                                     rideMap.put("distance", distance);
                                     rideMap.put("fare", fare);
                                     rideMap.put("timestamp", ServerValue.TIMESTAMP);
