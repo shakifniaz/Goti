@@ -121,7 +121,7 @@
                 <TextView
                     android:layout_width="80dp"
                     android:layout_height="wrap_content"
-                    android:text="Licence : "
+                    android:text="License : "
                     android:textColor="@color/new_color"
                     android:textSize="15sp" />
 

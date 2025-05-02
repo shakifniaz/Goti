@@ -11,6 +11,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -39,6 +40,7 @@ public class DriverSettingsActivity extends AppCompatActivity {
     private static final int PICK_IMAGE_REQUEST = 1;
 
     private EditText mNameField, mPhoneField, mCarField;
+    private TextView mLicenseField;
     private Button mBack, mConfirm;
     private ImageView mProfileImage;
     private RadioGroup mRadioGroup;
@@ -57,6 +59,7 @@ public class DriverSettingsActivity extends AppCompatActivity {
         mNameField = findViewById(R.id.name);
         mPhoneField = findViewById(R.id.phone);
         mCarField = findViewById(R.id.car);
+        mLicenseField = findViewById(R.id.licence_driver); // Changed to TextView
         mProfileImage = findViewById(R.id.profileImage);
         mBack = findViewById(R.id.back);
         mConfirm = findViewById(R.id.confirm);
@@ -97,6 +100,9 @@ public class DriverSettingsActivity extends AppCompatActivity {
                     }
                     if (snapshot.hasChild("car")) {
                         mCarField.setText(snapshot.child("car").getValue(String.class));
+                    }
+                    if (snapshot.hasChild("license")) {
+                        mLicenseField.setText(snapshot.child("license").getValue(String.class));
                     }
                     if (snapshot.hasChild("service")) {
                         String service = snapshot.child("service").getValue(String.class);
