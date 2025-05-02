@@ -26,19 +26,20 @@
         android:layout_height="788dp"
         android:layout_marginTop="0dp"
         android:layout_marginBottom="20dp">
+
+        <!-- Overlapping Circular Image -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="18dp"
-            android:layout_marginTop="170dp"
+            android:layout_marginTop="100dp"
             android:layout_marginEnd="18dp"
             android:background="@drawable/card_bg2"
             android:gravity="center"
             android:orientation="vertical"
-            android:paddingTop="100dp"
+            android:paddingTop="92dp"
             android:paddingBottom="30dp">
 
-            <!-- Name Field -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -49,7 +50,7 @@
                     android:layout_height="wrap_content"
                     android:text="Name : "
                     android:textColor="@color/new_color"
-                    android:textSize="17sp" />
+                    android:textSize="15sp" />
 
                 <EditText
                     android:id="@+id/name"
@@ -60,10 +61,9 @@
                     android:paddingLeft="16dp"
                     android:textColor="@color/new_color"
                     android:textColorHint="@color/new_color"
-                    android:textSize="16sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
-            <!-- Phone Field -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -74,7 +74,7 @@
                     android:layout_height="wrap_content"
                     android:text="Phone : "
                     android:textColor="@color/new_color"
-                    android:textSize="17sp" />
+                    android:textSize="15sp" />
 
                 <EditText
                     android:id="@+id/phone"
@@ -86,10 +86,9 @@
                     android:paddingLeft="16dp"
                     android:textColor="@color/new_color"
                     android:textColorHint="@color/new_color"
-                    android:textSize="16sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
-            <!-- Car Field -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -100,7 +99,7 @@
                     android:layout_height="wrap_content"
                     android:text="Car : "
                     android:textColor="@color/new_color"
-                    android:textSize="17sp" />
+                    android:textSize="15sp" />
 
                 <EditText
                     android:id="@+id/car"
@@ -111,10 +110,34 @@
                     android:paddingLeft="16dp"
                     android:textColor="@color/new_color"
                     android:textColorHint="@color/new_color"
-                    android:textSize="16sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
-            <!-- Radio Buttons -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="15dp">
+
+                <TextView
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:text="Licence : "
+                    android:textColor="@color/new_color"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:id="@+id/licence_driver"
+                    android:layout_width="240dp"
+                    android:layout_height="43dp"
+                    android:background="@drawable/border4"
+                    android:gravity="center_vertical"
+                    android:hint="Your Licence Number"
+                    android:paddingLeft="16dp"
+                    android:textColor="@color/new_color"
+                    android:textColorHint="@color/new_color"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
             <RadioGroup
                 android:id="@+id/radioGroup"
                 android:layout_width="match_parent"
@@ -123,29 +146,79 @@
                 android:gravity="center"
                 android:orientation="horizontal">
 
-                <RadioButton
-                    android:id="@+id/GotiX"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:buttonTint="@color/new_color"
-                    android:text="GotiX"
-                    android:textColor="@color/new_color" />
+                    android:background="@drawable/border4"
+                    android:orientation="vertical"
+                    android:padding="10dp">
 
-                <RadioButton
-                    android:id="@+id/GotiBlack"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:buttonTint="@color/new_color"
-                    android:text="GotiBlack"
-                    android:textColor="@color/new_color" />
+                    <ImageView
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/cng2" />
 
-                <RadioButton
-                    android:id="@+id/GotiXl"
+                    <RadioButton
+                        android:id="@+id/GotiX"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/new_color"
+                        android:text="CNG"
+                        android:textColor="@color/new_color"
+                        android:textSize="15dp" />
+
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:buttonTint="@color/new_color"
-                    android:text="GotiXl"
-                    android:textColor="@color/new_color" />
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/border4"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <ImageView
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/bike" />
+
+                    <RadioButton
+                        android:id="@+id/GotiBlack"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/new_color"
+                        android:text="BIKE"
+                        android:textColor="@color/new_color"
+                        android:textSize="15dp" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/border4"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <ImageView
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/car" />
+
+                    <RadioButton
+                        android:id="@+id/GotiXl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:buttonTint="@color/new_color"
+                        android:text="CAR"
+                        android:textColor="@color/new_color"
+                        android:textSize="15dp" />
+
+                </LinearLayout>
             </RadioGroup>
 
             <!-- Buttons -->
@@ -157,34 +230,33 @@
 
                 <Button
                     android:id="@+id/back"
-                    android:layout_width="150dp"
-                    android:layout_height="55dp"
+                    android:layout_width="130dp"
+                    android:layout_height="50dp"
                     android:background="@drawable/border3"
                     android:fontFamily="@font/montserrat_bold"
                     android:text="Back"
                     android:textColor="@color/new_color"
-                    android:textSize="23sp" />
+                    android:textSize="18sp" />
 
                 <Button
                     android:id="@+id/confirm"
-                    android:layout_width="150dp"
-                    android:layout_height="55dp"
+                    android:layout_width="130dp"
+                    android:layout_height="50dp"
                     android:layout_marginStart="10dp"
                     android:background="@drawable/button"
                     android:fontFamily="@font/montserrat_bold"
                     android:text="Confirm"
                     android:textColor="@color/white"
-                    android:textSize="23sp" />
+                    android:textSize="18sp" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Overlapping Circular Image -->
         <ImageView
             android:id="@+id/profileImage"
-            android:layout_width="180dp"
-            android:layout_height="180dp"
+            android:layout_width="170dp"
+            android:layout_height="170dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="80dp"
+            android:layout_marginTop="10dp"
             android:padding="10dp"
             android:src="@drawable/baseline_account_circle_24" />
     </FrameLayout>
