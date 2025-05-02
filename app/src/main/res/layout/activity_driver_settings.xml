@@ -146,79 +146,43 @@
                 android:gravity="center"
                 android:orientation="horizontal">
 
-                <LinearLayout
+                <RadioButton
+                    android:id="@+id/GotiX"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/border4"
-                    android:orientation="vertical"
-                    android:padding="10dp">
+                    android:buttonTint="@color/new_color"
+                    android:drawableTop="@drawable/cng_resized"
+                    android:padding="10dp"
+                    android:text="CNG"
+                    android:textColor="@color/new_color"
+                    android:textSize="15dp" />
 
-                    <ImageView
-                        android:layout_width="45dp"
-                        android:layout_height="45dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/cng2" />
-
-                    <RadioButton
-                        android:id="@+id/GotiX"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:buttonTint="@color/new_color"
-                        android:text="CNG"
-                        android:textColor="@color/new_color"
-                        android:textSize="15dp" />
-
-                </LinearLayout>
-
-                <LinearLayout
+                <RadioButton
+                    android:id="@+id/GotiBlack"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="10dp"
                     android:layout_marginEnd="10dp"
                     android:background="@drawable/border4"
-                    android:orientation="vertical"
-                    android:padding="10dp">
+                    android:buttonTint="@color/new_color"
+                    android:drawableTop="@drawable/bike_resized"
+                    android:padding="10dp"
+                    android:text="BIKE"
+                    android:textColor="@color/new_color"
+                    android:textSize="15dp" />
 
-                    <ImageView
-                        android:layout_width="45dp"
-                        android:layout_height="45dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/bike" />
-
-                    <RadioButton
-                        android:id="@+id/GotiBlack"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:buttonTint="@color/new_color"
-                        android:text="BIKE"
-                        android:textColor="@color/new_color"
-                        android:textSize="15dp" />
-
-                </LinearLayout>
-
-                <LinearLayout
+                <RadioButton
+                    android:id="@+id/GotiXl"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/border4"
-                    android:orientation="vertical"
-                    android:padding="10dp">
-
-                    <ImageView
-                        android:layout_width="45dp"
-                        android:layout_height="45dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/car" />
-
-                    <RadioButton
-                        android:id="@+id/GotiXl"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:buttonTint="@color/new_color"
-                        android:text="CAR"
-                        android:textColor="@color/new_color"
-                        android:textSize="15dp" />
-
-                </LinearLayout>
+                    android:buttonTint="@color/new_color"
+                    android:drawableTop="@drawable/car_resized"
+                    android:padding="10dp"
+                    android:text="CAR"
+                    android:textColor="@color/new_color"
+                    android:textSize="15dp" />
             </RadioGroup>
 
             <!-- Buttons -->

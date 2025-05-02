@@ -121,7 +121,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
         searchTimeoutHandler = new Handler();
         RadioButton defaultRadio = findViewById(R.id.GotiX);
-        requestService = defaultRadio != null ? defaultRadio.getText().toString() : "GotiX";
+        requestService = defaultRadio != null ? defaultRadio.getText().toString() : "CNG";
 
         if (!Places.isInitialized()) {
             Places.initialize(getApplicationContext(), "AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q");
@@ -237,10 +237,10 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
         if (requestService != null) {
             switch (requestService) {
-                case "GotiBlack":
+                case "BIKE":
                     estimatedFare *= 1.5;
                     break;
-                case "GotiXl":
+                case "CAR":
                     estimatedFare *= 2.0;
                     break;
                 // GotiX uses base rate
@@ -336,10 +336,40 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     }
 
     private void logoutUser() {
-        cancelRideRequest();
+        // First sign out Firebase Auth
         FirebaseAuth.getInstance().signOut();
+
+        // Then clean up ride state without Firebase operations
+        cleanupBeforeLogout();
+
+        // Start new activity and finish current one
         startActivity(new Intent(CustomerMapActivity.this, MainActivity.class));
         finish();
+    }
+
+    private void cleanupBeforeLogout() {
+        // Remove all listeners immediately
+        if (driveHasEndedRefListener != null && driveHasEndedRef != null) {
+            driveHasEndedRef.removeEventListener(driveHasEndedRefListener);
+        }
+        if (driverLocationRefListener != null && driverLocationRef != null) {
+            driverLocationRef.removeEventListener(driverLocationRefListener);
+        }
+        if (geoQuery != null) {
+            geoQuery.removeAllListeners();
+        }
+
+        // Clear UI references
+        runOnUiThread(() -> {
+            mDriverInfo.setVisibility(View.GONE);
+            erasePolylines();
+            removeMarkers();
+        });
+
+        // Reset state variables
+        currentRideState = RideState.NONE;
+        driverFound = false;
+        driverFoundID = "";
     }
 
     private void openSettings() {

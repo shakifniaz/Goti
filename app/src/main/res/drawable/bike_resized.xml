@@ -1,0 +1,7 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:drawable="@drawable/bike"
+        android:width="45dp"
+        android:height="45dp"
+        android:gravity="center"/>
+</layer-list>

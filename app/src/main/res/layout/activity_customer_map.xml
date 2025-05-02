@@ -28,14 +28,13 @@
                 android:id="@+id/logout"
                 android:layout_width="wrap_content"
                 android:layout_height="45dp"
-                android:background="@drawable/button3"
-                android:text="Logout"
                 android:layout_marginStart="13dp"
                 android:layout_marginEnd="12dp"
+                android:background="@drawable/button3"
                 android:paddingLeft="15dp"
                 android:paddingRight="15dp"
-                android:textColor="@color/white"
-                />
+                android:text="Logout"
+                android:textColor="@color/white" />
 
             <Button
                 android:layout_width="wrap_content"
@@ -167,24 +166,24 @@
                     android:id="@+id/GotiX"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="GotiX"
-                    android:textColor="@color/black"
+                    android:text="CNG"
+                    android:textColor="@color/new_color"
                     android:buttonTint="@color/new_color"/>
                 <RadioButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="GotiBlack"
+                    android:text="BIKE"
                     android:id="@+id/GotiBlack"
                     android:layout_marginStart="15dp"
                     android:layout_marginEnd="15dp"
-                    android:textColor="@color/black"
-                    android:buttonTint="@color/new_color"/>
+                    android:textColor="@color/new_color"
+                    android:buttonTint="@color/new_color" />
                 <RadioButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="GotiXl"
+                    android:text="CAR"
                     android:id="@+id/GotiXl"
-                    android:textColor="@color/black"
+                    android:textColor="@color/new_color"
                     android:buttonTint="@color/new_color"/>
             </RadioGroup>
 

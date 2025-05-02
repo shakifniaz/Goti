@@ -290,13 +290,13 @@ public class DriverSettingsActivity extends AppCompatActivity {
                         String service = snapshot.child("service").getValue(String.class);
                         if (service != null) {
                             switch (service) {
-                                case "GotiX":
+                                case "CNG":
                                     mRadioGroup.check(R.id.GotiX);
                                     break;
-                                case "GotiBlack":
+                                case "BIKE":
                                     mRadioGroup.check(R.id.GotiBlack);
                                     break;
-                                case "GotiXl":
+                                case "CAR":
                                     mRadioGroup.check(R.id.GotiXl);
                                     break;
                             }
