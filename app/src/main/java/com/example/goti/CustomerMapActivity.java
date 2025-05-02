@@ -231,8 +231,8 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
         float distanceInKm = results[0] / 1000; // Convert meters to km
 
-        double baseFare = 3.0; // Base fare
-        double perKmRate = 1.5; // Rate per km
+        double baseFare = 25.0;
+        double perKmRate = 1.5;
         double estimatedFare = baseFare + (distanceInKm * perKmRate);
 
         if (requestService != null) {
@@ -243,7 +243,6 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                 case "CAR":
                     estimatedFare *= 2.0;
                     break;
-                // GotiX uses base rate
             }
         }
 
