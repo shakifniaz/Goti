@@ -95,7 +95,7 @@
                 android:layout_height="48dp"
                 android:layout_gravity="center"
                 android:background="@drawable/border2"
-                android:drawableLeft="@drawable/iconpass"
+                android:drawableLeft="@drawable/pass_resized"
                 android:drawablePadding="5dp"
                 android:hint=" Type your password : "
                 android:inputType="textPassword"
