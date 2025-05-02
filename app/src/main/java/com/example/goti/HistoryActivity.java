@@ -105,7 +105,7 @@ public class HistoryActivity extends AppCompatActivity {
                         }
 
                         Double fareValue = snapshot.child("fare").getValue(Double.class);
-                        String fare = fareValue != null ? "$" + String.format(Locale.getDefault(), "%.2f", fareValue) : "$0.00";
+                        String fare = fareValue != null ? "Tk. " + String.format(Locale.getDefault(), "%.2f", fareValue) : "$0.00";
                         String driverName = snapshot.child("driverName").getValue(String.class);
                         String carType = snapshot.child("carType").getValue(String.class);
 

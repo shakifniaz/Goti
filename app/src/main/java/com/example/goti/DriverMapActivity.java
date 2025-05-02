@@ -1159,7 +1159,8 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                             }
                         });
 
-                DatabaseReference driverWorkingLocRef = FirebaseDatabase.getInstance().getReference("driversWorking/" + userID + "/l");
+                DatabaseReference driverWorkingLocRef = FirebaseDatabase.getInstance()
+                        .getReference("driversWorking/" + userID + "/l");
                 List<Object> locationList = new ArrayList<>();
                 locationList.add(location.getLatitude());
                 locationList.add(location.getLongitude());

@@ -606,7 +606,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             }
 
             @Override public void onKeyExited(String key) {
-                if (driverFound && key.equals(driverFoundID)) {
+                if (driverFound && key.equals(driverFoundID) && currentRideState == RideState.REQUESTING) {
                     handleDriverUnavailable();
                 }
             }
@@ -631,6 +631,12 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
     }
 
     private void assignDriverToCustomer() {
+        // Remove the GeoQuery listener since we've found a driver
+        if (geoQuery != null) {
+            geoQuery.removeAllListeners();
+            geoQuery = null;
+        }
+
         DatabaseReference driverRef = FirebaseDatabase.getInstance()
                 .getReference("Users/Drivers/" + driverFoundID + "/customerRequest");
 
@@ -797,12 +803,19 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
     private void getDriverLocation() {
         if (driverFoundID == null || driverFoundID.isEmpty()) {
-            Toast.makeText(this, "Driver ID not available", Toast.LENGTH_SHORT).show();
+            Log.w(TAG, "Driver ID not available");
             return;
         }
 
-        driverLocationRef = FirebaseDatabase.getInstance().getReference("driversWorking").child(driverFoundID).child("l");
+        // Changed to driversWorking instead of driversAvailable
+        driverLocationRef = FirebaseDatabase.getInstance()
+                .getReference("driversWorking")
+                .child(driverFoundID)
+                .child("l");
 
+        Log.d(TAG, "Listening to driver location at: " + driverLocationRef.toString());
+
+        // Remove previous listener if exists
         if (driverLocationRefListener != null) {
             driverLocationRef.removeEventListener(driverLocationRefListener);
         }
@@ -811,32 +824,56 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (!snapshot.exists()) {
-                    Toast.makeText(CustomerMapActivity.this, "Driver location not available!", Toast.LENGTH_SHORT).show();
-                    Log.e("DriverLocation", "Snapshot does not exist at path: " + snapshot.getRef().toString());
+                    Log.w(TAG, "Driver location snapshot doesn't exist");
                     return;
                 }
 
                 try {
-                    List<Object> location = (List<Object>) snapshot.getValue();
-                    if (location != null && location.size() >= 2) {
-                        Log.d("DriverLocation", "Driver location updated: " + location.get(0) + ", " + location.get(1));
-                        updateDriverMarker(location);
-                    } else {
-                        Log.e("DriverLocation", "Invalid location data format");
+                    Object locationData = snapshot.getValue();
+                    if (locationData instanceof List) {
+                        List<?> locationList = (List<?>) locationData;
+                        if (locationList.size() >= 2) {
+                            // Convert to List<Object> for type safety
+                            List<Object> location = new ArrayList<>();
+                            location.add(locationList.get(0));
+                            location.add(locationList.get(1));
+                            updateDriverMarker(location);
+                            return;
+                        }
+                    } else if (locationData instanceof Map) {
+                        Map<?, ?> locationMap = (Map<?, ?>) locationData;
+                        if (locationMap.containsKey("latitude") && locationMap.containsKey("longitude")) {
+                            List<Object> location = Arrays.asList(
+                                    locationMap.get("latitude"),
+                                    locationMap.get("longitude")
+                            );
+                            updateDriverMarker(location);
+                            return;
+                        }
                     }
+                    Log.w(TAG, "Unexpected location data format: " + locationData);
                 } catch (Exception e) {
-                    Log.e("LocationParse", "Error parsing location", e);
+                    Log.e(TAG, "Error parsing location", e);
+                    runOnUiThread(() ->
+                            Toast.makeText(CustomerMapActivity.this,
+                                    "Error processing driver location",
+                                    Toast.LENGTH_SHORT).show());
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e("DriverLocation", "Error: " + error.getMessage());
+                Log.e(TAG, "Driver location listener cancelled: " + error.getMessage());
+                runOnUiThread(() ->
+                        Toast.makeText(CustomerMapActivity.this,
+                                "Location updates cancelled",
+                                Toast.LENGTH_SHORT).show());
             }
         });
     }
 
     private void updateDriverMarker(List<Object> location) {
+        Log.d(TAG, "Updating driver location. Current state: " + currentRideState);
         double lat = Double.parseDouble(location.get(0).toString());
         double lng = Double.parseDouble(location.get(1).toString());
         LatLng driverLatLng = new LatLng(lat, lng);
