@@ -54,6 +54,8 @@ import com.google.maps.GeoApiContext;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.TravelMode;
 import com.google.maps.android.PolyUtil;
+
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -65,28 +67,43 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     private static final String TAG = "DriverMapActivity";
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
+    // UI Components
     private GoogleMap mMap;
-    private FusedLocationProviderClient fusedLocationProviderClient;
-    private LocationCallback locationCallback;
-    private DatabaseReference driverLocationRef;
-    private DatabaseReference assignedCustomerRef;
-    private GeoFire geoFire;
-    private String userID;
     private Button mLogout, mSettings, mRideStatus;
-    private int status = 0;
-    private String customerID = "", destination;
-    private LatLng destinationLatLng;
-    private Marker pickupMarker, destinationMarker;
-    private DatabaseReference assignedCustomerPickupLocationRef;
-    private ValueEventListener assignedCustomerPickupLocationRefListener;
     private LinearLayout mCustomerInfo;
     private ImageView mCustomerProfileImage;
     private TextView mCustomerName, mCustomerPhone, mCustomerDestination;
+
+    // Location Services
+    private FusedLocationProviderClient fusedLocationProviderClient;
+    private LocationCallback locationCallback;
     private Location mLastLocation;
+
+    // Firebase References
+    private DatabaseReference driverLocationRef;
+    private DatabaseReference assignedCustomerRef;
+    private DatabaseReference assignedCustomerPickupLocationRef;
+    private DatabaseReference customerRequestRef;
+    private GeoFire geoFire;
+
+    // State Variables
+    private String userID;
+    private String customerID = "";
+    private String destination;
+    private LatLng destinationLatLng;
+    private int status = 0; // 0=available, 1=picked up, 2=enroute
+
+    // Markers and Polylines
+    private Marker pickupMarker, destinationMarker;
     private List<Polyline> polylines = new ArrayList<>();
-    GeoApiContext context = new GeoApiContext.Builder()
-            .apiKey("AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q")
-            .build();
+
+    // Listeners
+    private ValueEventListener assignedCustomerRefListener;
+    private ValueEventListener assignedCustomerPickupLocationRefListener;
+    private ValueEventListener customerRequestRefListener;
+
+    // Safe handler for callbacks
+    private final SafeHandler safeHandler = new SafeHandler(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,12 +114,28 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             Places.initialize(getApplicationContext(), "AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q");
         }
 
-        polylines = new ArrayList<>();
+        initializeViews();
+        setupFirebaseReferences();
+        setupMap();
+        setupLocationClient();
+        setupButtonListeners();
+        setupCustomerAssignmentListener();
+    }
+
+    private void initializeViews() {
         mRideStatus = findViewById(R.id.rideStatus);
+        mCustomerInfo = findViewById(R.id.customerInfo);
+        mCustomerProfileImage = findViewById(R.id.customerProfileImage);
+        mCustomerName = findViewById(R.id.customerName);
+        mCustomerPhone = findViewById(R.id.customerPhone);
+        mCustomerDestination = findViewById(R.id.customerDestination);
+        mLogout = findViewById(R.id.logout);
+        mSettings = findViewById(R.id.settings);
+
         mRideStatus.setOnClickListener(v -> {
-            switch(status){
-                case 0: // Available - no action
-                    break;
+            if (isActivityDestroyed()) return;
+
+            switch(status) {
                 case 1: // Picked up customer
                     status = 2;
                     erasePolylines();
@@ -111,31 +144,145 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     } else {
                         getAssignedCustomerDestination();
                     }
-                    recordRideCompletion();
                     mRideStatus.setText("Complete Ride");
                     updateRideStatus("enroute");
                     break;
                 case 2: // Completed ride
-                    //recordRideCompletion();
-                    mRideStatus.setText("Available");
-                    status = 0;
-                    clearCustomerInfo();
-                    updateRideStatus("completed");
-                    break;
-                default: // Add cancel option
-                    cancelRideFromDriver();
+                    completeRide();
                     break;
             }
         });
+    }
 
-        initializeViews();
-        setupFirebaseReferences();
-        setupMap();
-        setupLocationClient();
-        setupButtonListeners();
-        setupCustomerAssignmentListener();
+    private void completeRide() {
+        new AlertDialog.Builder(this)
+                .setTitle("Complete Ride")
+                .setMessage("Are you sure you want to complete this ride?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    recordRideCompletion();
+                    mRideStatus.setText("Available");
+                    status = 0;
+                    clearCustomerInfo();
+                })
+                .setNegativeButton("No", null)
+                .show();
+    }
 
-        customerID = "";
+    private void setupFirebaseReferences() {
+        userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        if (userID == null) {
+            finish();
+            return;
+        }
+
+        driverLocationRef = FirebaseDatabase.getInstance().getReference("driversAvailable");
+        customerRequestRef = FirebaseDatabase.getInstance().getReference("CustomerRequest");
+        geoFire = new GeoFire(driverLocationRef);
+    }
+
+    private void setupMap() {
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        if (mapFragment != null) {
+            mapFragment.getMapAsync(this);
+        }
+    }
+
+    private void setupLocationClient() {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        requestLocationPermissions();
+    }
+
+    private void setupButtonListeners() {
+        mLogout.setOnClickListener(v -> logoutUser());
+        mSettings.setOnClickListener(v -> openSettings());
+    }
+
+    private void setupCustomerAssignmentListener() {
+        if (isActivityDestroyed() || userID == null) return;
+
+        assignedCustomerRef = FirebaseDatabase.getInstance()
+                .getReference("Users/Drivers/" + userID + "/customerRequest");
+
+        assignedCustomerRefListener = assignedCustomerRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                safeHandler.updateUI(() -> {
+                    try {
+                        if (!dataSnapshot.exists()) {
+                            handleRideEnded();
+                            return;
+                        }
+
+                        if (dataSnapshot.hasChild("status")) {
+                            String status = dataSnapshot.child("status").getValue(String.class);
+                            if ("canceled".equals(status)) {
+                                handleRideCanceled();
+                                return;
+                            }
+                        }
+
+                        String newCustomerID = dataSnapshot.child("customerRideID").getValue(String.class);
+                        if (newCustomerID == null || newCustomerID.isEmpty()) {
+                            handleRideEnded();
+                            return;
+                        }
+
+                        if (!newCustomerID.equals(customerID)) {
+                            customerID = newCustomerID;
+                            setupCustomerRequestListener();
+                            showCustomerInfo();
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error in customer assignment", e);
+                        handleRideEnded();
+                    }
+                });
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Assignment listener cancelled", databaseError.toException());
+            }
+        });
+    }
+
+    private void setupCustomerRequestListener() {
+        if (customerID == null || customerID.isEmpty()) return;
+
+        // Remove previous listener if exists
+        if (customerRequestRefListener != null) {
+            customerRequestRef.child(customerID).removeEventListener(customerRequestRefListener);
+        }
+
+        customerRequestRefListener = customerRequestRef.child(customerID).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!snapshot.exists()) {
+                    // Customer request was removed (completed or canceled)
+                    handleRideEnded();
+                } else if (snapshot.hasChild("status")) {
+                    String status = snapshot.child("status").getValue(String.class);
+                    if ("completed".equals(status) || "canceled".equals(status)) {
+                        handleRideEnded();
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e(TAG, "Customer request listener cancelled", error.toException());
+            }
+        });
+    }
+
+    @Override
+    public void onMapReady(@NonNull GoogleMap googleMap) {
+        mMap = googleMap;
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mMap.setMyLocationEnabled(true);
+            setupLocationUpdates();
+        }
     }
 
     private void updateRideStatus(String status) {
@@ -232,368 +379,141 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     }
 
     private double calculateRideDistance() {
-        // Implement your actual distance calculation logic here
-        // This is a placeholder - you should calculate based on actual route
-        return 5.0; // 5 km as example
+        // Implement actual distance calculation based on pickup and destination
+        return 5.0; // Placeholder
     }
 
     private double calculateFare(double distance) {
-        // Implement your actual fare calculation logic here
-        // Base fare + (distance * rate per km)
-        return 3.0 + (distance * 1.5); // $3 base + $1.5 per km as example
-    }
-
-    private void initializeViews() {
-        mCustomerInfo = findViewById(R.id.customerInfo);
-        mCustomerProfileImage = findViewById(R.id.customerProfileImage);
-        mCustomerName = findViewById(R.id.customerName);
-        mCustomerPhone = findViewById(R.id.customerPhone);
-        mCustomerDestination = findViewById(R.id.customerDestination);
-        mLogout = findViewById(R.id.logout);
-        mSettings = findViewById(R.id.settings);
-    }
-
-    private void setupFirebaseReferences() {
-        userID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        if (userID == null) {
-            Log.e(TAG, "User ID is null, user not authenticated");
-            finish();
-            return;
-        }
-
-        driverLocationRef = FirebaseDatabase.getInstance().getReference("driversAvailable");
-        geoFire = new GeoFire(driverLocationRef);
-    }
-
-    private void setupMap() {
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        if (mapFragment != null) {
-            mapFragment.getMapAsync(this);
-        } else {
-            Log.e(TAG, "Map fragment is null");
-            Toast.makeText(this, "Error initializing map", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void setupLocationClient() {
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-        requestLocationPermissions();
-    }
-
-    private void setupButtonListeners() {
-        mLogout.setOnClickListener(v -> logoutUser());
-        mSettings.setOnClickListener(v -> openSettings());
-    }
-
-    private void logoutUser() {
-        cleanupDriverLocation();
-        FirebaseAuth.getInstance().signOut();
-        startActivity(new Intent(DriverMapActivity.this, MainActivity.class));
-        finish();
-    }
-
-    private void openSettings() {
-        startActivity(new Intent(DriverMapActivity.this, DriverSettingsActivity.class));
-    }
-
-    private ValueEventListener assignedCustomerRefListener;
-
-    private void setupCustomerAssignmentListener() {
-        if (userID == null) {
-            Log.e(TAG, "User ID is null in setupCustomerAssignmentListener");
-            return;
-        }
-
-        assignedCustomerRef = FirebaseDatabase.getInstance()
-                .getReference("Users/Drivers/" + userID + "/customerRequest");
-
-        assignedCustomerRefListener = assignedCustomerRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                try {
-                    if (!dataSnapshot.exists()) {
-                        // No customer assigned - reset state
-                        handleRideEnded();
-                        return;
-                    }
-
-                    // Check for cancellation status first
-                    if (dataSnapshot.hasChild("status")) {
-                        String status = dataSnapshot.child("status").getValue(String.class);
-                        if ("canceled".equals(status)) {
-                            handleRideCanceled();
-                            return;
-                        }
-                    }
-
-                    // Get customer ID if exists
-                    String newCustomerID = dataSnapshot.child("customerRideID").getValue(String.class);
-                    if (newCustomerID == null || newCustomerID.isEmpty()) {
-                        handleRideEnded();
-                        return;
-                    }
-
-                    // Check if customer request still exists
-                    DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
-                            .getReference("CustomerRequest/" + newCustomerID);
-
-                    customerRequestRef.addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            if (!snapshot.exists()) {
-                                handleRideCanceled();
-                                return;
-                            }
-
-                            // Only update if this is a different customer
-                            if (!newCustomerID.equals(customerID)) {
-                                customerID = newCustomerID;
-                                showCustomerInfo();
-                            }
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                            Log.e(TAG, "Error checking customer request", error.toException());
-                        }
-                    });
-                } catch (Exception e) {
-                    Log.e(TAG, "Error in customer assignment listener", e);
-                    handleRideEnded();
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e(TAG, "Error checking assignment", databaseError.toException());
-            }
-        });
+        return 3.0 + (distance * 1.5); // Placeholder calculation
     }
 
     private void handleRideCanceled() {
-        runOnUiThread(() -> {
-            Toast.makeText(DriverMapActivity.this,
-                    "Ride was canceled by customer",
-                    Toast.LENGTH_SHORT).show();
-
-            // Clear all customer info and reset UI
+        safeHandler.updateUI(() -> {
+            Toast.makeText(DriverMapActivity.this, "Ride was canceled", Toast.LENGTH_SHORT).show();
             clearCustomerInfo();
             status = 0;
             mRideStatus.setText("Available");
 
-            // Remove the customer request from driver's node
             if (userID != null) {
                 DatabaseReference driverRef = FirebaseDatabase.getInstance()
                         .getReference("Users/Drivers/" + userID + "/customerRequest");
                 driverRef.removeValue();
             }
 
-            // Also remove the customer's request if it still exists
-            if (customerID != null && !customerID.isEmpty()) {
-                DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
-                        .getReference("CustomerRequest/" + customerID);
-                customerRequestRef.removeValue();
-            }
-
-            // Update driver availability
             if (mLastLocation != null) {
                 updateDriverLocation(mLastLocation);
             }
         });
     }
+
     private void cancelRideFromDriver() {
-        if (customerID == null || customerID.isEmpty()) {
-            return;
-        }
+        if (customerID == null || customerID.isEmpty()) return;
 
         new AlertDialog.Builder(this)
                 .setTitle("Cancel Ride")
                 .setMessage("Are you sure you want to cancel this ride?")
                 .setPositiveButton("Yes", (dialog, which) -> {
-                    // Update status in both customer and driver nodes
+                    // Update both customer request and driver assignment
                     Map<String, Object> updateMap = new HashMap<>();
                     updateMap.put("status", "canceled");
 
-                    // Update customer request
                     DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
                             .getReference("CustomerRequest/" + customerID);
                     customerRequestRef.updateChildren(updateMap);
 
-                    // Update driver's assignment
                     if (userID != null) {
                         DatabaseReference driverRef = FirebaseDatabase.getInstance()
                                 .getReference("Users/Drivers/" + userID + "/customerRequest");
-                        driverRef.updateChildren(updateMap)
-                                .addOnSuccessListener(aVoid -> {
-                                    handleRideCanceled();
-                                });
-                    } else {
-                        handleRideCanceled();
+                        driverRef.updateChildren(updateMap);
                     }
                 })
                 .setNegativeButton("No", null)
                 .show();
     }
 
-    private void cleanupAssignmentListener() {
-        if (assignedCustomerRef != null && assignedCustomerRefListener != null) {
-            assignedCustomerRef.removeEventListener(assignedCustomerRefListener);
-        }
-        assignedCustomerRefListener = null;
-    }
-
     private void handleRideEnded() {
-        if (customerID != null && !customerID.isEmpty()) {
-            customerID = "";
-            clearCustomerInfo();
-            status = 0;
-            mRideStatus.setText("Available");
-        }
+        safeHandler.updateUI(() -> {
+            if (customerID != null && !customerID.isEmpty()) {
+                clearCustomerInfo();
+                status = 0;
+                mRideStatus.setText("Available");
+            }
+        });
     }
 
     private void showCustomerInfo() {
-        try {
-            if (mMap == null) {
-                Log.e(TAG, "Map is not ready yet");
-                return;
+        safeHandler.updateUI(() -> {
+            try {
+                if (mMap == null) return;
+
+                mCustomerInfo.setVisibility(View.VISIBLE);
+                status = 1;
+                mRideStatus.setText("Picked Up Customer");
+                getAssignedCustomerPickupLocation();
+                getAssignedCustomerDestination();
+                getAssignedCustomerInfo();
+            } catch (Exception e) {
+                Log.e(TAG, "Error showing customer info", e);
+                endRide();
+                clearCustomerInfo();
             }
-            mCustomerInfo.setVisibility(View.VISIBLE);
-            status = 1;
-            mRideStatus.setText("Picked Up Customer");
-
-            // Get all customer information immediately
-            getAssignedCustomerPickupLocation();
-            getAssignedCustomerDestination();
-            getAssignedCustomerInfo();
-
-            // Center map on driver's current location if available
-            if (mLastLocation != null) {
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                        new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()),
-                        15f));
-
-                // Draw route from current location to pickup point immediately
-                if (pickupMarker != null) {
-                    getRouteToMarker(pickupMarker.getPosition());
-                }
-
-                // Also show destination marker immediately
-                if (destinationLatLng != null) {
-                    updateDestinationMarker(Arrays.asList(
-                                    destinationLatLng.latitude,
-                                    destinationLatLng.longitude),
-                            destination);
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error showing customer info", e);
-            endRide();
-            clearCustomerInfo();
-        }
+        });
     }
 
     private void endRide() {
-        runOnUiThread(() -> {
-            // Clear UI first
+        safeHandler.updateUI(() -> {
             mRideStatus.setText("Available");
             status = 0;
             clearCustomerInfo();
 
-            // Clean up Firebase references
             if (userID != null) {
-                // Remove driver's customer request reference
                 DatabaseReference driverRef = FirebaseDatabase.getInstance()
                         .getReference("Users/Drivers/" + userID + "/customerRequest");
-                driverRef.removeValue().addOnCompleteListener(task -> {
-                    // Remove customer request if exists
-                    if (customerID != null && !customerID.isEmpty()) {
-                        DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
-                                .getReference("CustomerRequest/" + customerID);
-                        customerRequestRef.removeValue();
-                    }
+                driverRef.removeValue();
 
-                    // Update GeoFire availability
-                    DatabaseReference refWorking = FirebaseDatabase.getInstance()
-                            .getReference("driversWorking");
-                    new GeoFire(refWorking).removeLocation(userID, (key, error) -> {
-                        if (mLastLocation != null) {
-                            DatabaseReference refAvailable = FirebaseDatabase.getInstance()
-                                    .getReference("driversAvailable");
-                            new GeoFire(refAvailable).setLocation(userID,
-                                    new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                        }
-                    });
+                DatabaseReference refWorking = FirebaseDatabase.getInstance()
+                        .getReference("driversWorking");
+                new GeoFire(refWorking).removeLocation(userID, (key, error) -> {
+                    if (mLastLocation != null) {
+                        DatabaseReference refAvailable = FirebaseDatabase.getInstance()
+                                .getReference("driversAvailable");
+                        new GeoFire(refAvailable).setLocation(userID,
+                                new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                    }
                 });
             }
-
-            // Reset critical variables
             customerID = "";
-
-            // Re-establish the assignment listener
-            setupCustomerAssignmentListener();
         });
     }
 
     private void clearCustomerInfo() {
-        runOnUiThread(() -> {
+        safeHandler.updateUI(() -> {
             mCustomerInfo.setVisibility(View.GONE);
             mCustomerName.setText("");
             mCustomerPhone.setText("");
             mCustomerDestination.setText("Destination: --");
             mCustomerProfileImage.setImageResource(R.drawable.account_circle_24);
 
-            // Remove markers and polylines
-            if (pickupMarker != null) {
-                pickupMarker.remove();
-                pickupMarker = null;
-            }
-            if (destinationMarker != null) {
-                destinationMarker.remove();
-                destinationMarker = null;
-            }
+            if (pickupMarker != null) pickupMarker.remove();
+            if (destinationMarker != null) destinationMarker.remove();
             erasePolylines();
 
-            // Reset customer data
             customerID = "";
             destination = null;
             destinationLatLng = null;
 
-            // Remove pickup location listener
             if (assignedCustomerPickupLocationRef != null && assignedCustomerPickupLocationRefListener != null) {
                 assignedCustomerPickupLocationRef.removeEventListener(assignedCustomerPickupLocationRefListener);
-                assignedCustomerPickupLocationRefListener = null;
+            }
+
+            if (customerRequestRefListener != null && customerID != null && !customerID.isEmpty()) {
+                customerRequestRef.child(customerID).removeEventListener(customerRequestRefListener);
             }
         });
     }
 
-    private void removeAllMarkers() {
-        try {
-            if (pickupMarker != null) {
-                pickupMarker.remove();
-                pickupMarker = null;
-            }
-            if (destinationMarker != null) {
-                destinationMarker.remove();
-                destinationMarker = null;
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error removing markers", e);
-        }
-    }
-
-    private void resetCustomerInfoFields() {
-        mCustomerName.setText("");
-        mCustomerPhone.setText("");
-        mCustomerDestination.setText("Destination: --");
-        mCustomerProfileImage.setImageResource(R.drawable.account_circle_24);
-    }
-
     private void getAssignedCustomerPickupLocation() {
-        if (customerID == null || customerID.isEmpty()) {
-            Log.d(TAG, "Customer ID is null or empty");
-            return;
-        }
+        if (customerID == null || customerID.isEmpty()) return;
 
         assignedCustomerPickupLocationRef = FirebaseDatabase.getInstance()
                 .getReference("CustomerRequest/" + customerID + "/l");
@@ -601,63 +521,45 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         assignedCustomerPickupLocationRefListener = assignedCustomerPickupLocationRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                try {
-                    if (!snapshot.exists()) {
-                        Log.d(TAG, "No pickup location data available");
-                        return;
-                    }
+                safeHandler.updateUI(() -> {
+                    try {
+                        if (!snapshot.exists()) return;
 
-                    if (snapshot.getValue() instanceof Map) {
-                        Map<String, Object> locationMap = (Map<String, Object>) snapshot.getValue();
-                        if (locationMap.containsKey("0") && locationMap.containsKey("1")) {
-                            updatePickupMarker(Arrays.asList(locationMap.get("0"), locationMap.get("1")));
+                        List<Object> location = (List<Object>) snapshot.getValue();
+                        if (location != null && location.size() >= 2) {
+                            updatePickupMarker(location);
                         }
-                    } else if (snapshot.getValue() instanceof List) {
-                        updatePickupMarker((List<Object>) snapshot.getValue());
-                    } else {
-                        Log.d(TAG, "Unknown location data format");
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error parsing pickup location", e);
                     }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error parsing pickup location", e);
-                }
+                });
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Error getting pickup location", error.toException());
+                Log.e(TAG, "Pickup location error", error.toException());
             }
         });
     }
 
     private void updatePickupMarker(List<Object> location) {
-        runOnUiThread(() -> {
+        safeHandler.updateUI(() -> {
             try {
+                if (mMap == null || location == null || location.size() < 2) return;
+
                 double lat = Double.parseDouble(location.get(0).toString());
                 double lng = Double.parseDouble(location.get(1).toString());
                 LatLng pickupLatLng = new LatLng(lat, lng);
 
-                if (pickupMarker != null) {
-                    pickupMarker.remove();
-                }
+                if (pickupMarker != null) pickupMarker.remove();
 
                 pickupMarker = mMap.addMarker(new MarkerOptions()
                         .position(pickupLatLng)
                         .title("Pickup Location")
                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
 
-                // Draw route from current location to pickup point if we have location
                 if (mLastLocation != null) {
                     getRouteToMarker(pickupLatLng);
-                }
-
-                // Zoom to show both driver and pickup if possible
-                if (mLastLocation != null) {
-                    LatLngBounds.Builder builder = new LatLngBounds.Builder();
-                    builder.include(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                    builder.include(pickupLatLng);
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100));
-                } else {
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pickupLatLng, 15));
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error updating pickup marker", e);
@@ -666,16 +568,12 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     }
 
     private void getRouteToMarker(LatLng destination) {
-        if (mLastLocation == null || destination == null || mMap == null) {
-            Log.e("ROUTE_ERROR", "Cannot calculate route - missing data");
-            return;
-        }
+        if (mLastLocation == null || destination == null || mMap == null) return;
 
         erasePolylines();
 
         new Thread(() -> {
             try {
-
                 GeoApiContext context = new GeoApiContext.Builder()
                         .apiKey("AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q")
                         .build();
@@ -690,7 +588,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                         .mode(TravelMode.DRIVING)
                         .await();
 
-                runOnUiThread(() -> {
+                safeHandler.updateUI(() -> {
                     if (result.routes != null && result.routes.length > 0) {
                         List<LatLng> decodedPath = PolyUtil.decode(
                                 result.routes[0].overviewPolyline.getEncodedPath());
@@ -701,22 +599,10 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                                 .width(10);
 
                         polylines.add(mMap.addPolyline(polylineOptions));
-
-                        // Zoom to show the entire route
-                        LatLngBounds.Builder builder = new LatLngBounds.Builder();
-                        builder.include(new LatLng(
-                                mLastLocation.getLatitude(),
-                                mLastLocation.getLongitude()));
-                        builder.include(destination);
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100));
                     }
                 });
             } catch (Exception e) {
                 Log.e("DirectionsAPI", "Error: " + e.getMessage());
-                runOnUiThread(() ->
-                        Toast.makeText(DriverMapActivity.this,
-                                "Failed to get route: " + e.getMessage(),
-                                Toast.LENGTH_SHORT).show());
             }
         }).start();
     }
@@ -730,37 +616,36 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         mCustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                try {
-                    if (snapshot.exists()) {
-                        if (snapshot.hasChild("name")) {
-                            mCustomerName.setText(snapshot.child("name").getValue(String.class));
+                safeHandler.updateUI(() -> {
+                    try {
+                        if (snapshot.exists()) {
+                            if (snapshot.hasChild("name")) {
+                                mCustomerName.setText(snapshot.child("name").getValue(String.class));
+                            }
+                            if (snapshot.hasChild("phone")) {
+                                mCustomerPhone.setText(snapshot.child("phone").getValue(String.class));
+                            }
+                            if (snapshot.hasChild("profileImageUrl")) {
+                                Glide.with(DriverMapActivity.this)
+                                        .load(snapshot.child("profileImageUrl").getValue(String.class))
+                                        .into(mCustomerProfileImage);
+                            }
                         }
-                        if (snapshot.hasChild("phone")) {
-                            mCustomerPhone.setText(snapshot.child("phone").getValue(String.class));
-                        }
-                        if (snapshot.hasChild("profileImageUrl")) {
-                            Glide.with(DriverMapActivity.this)
-                                    .load(snapshot.child("profileImageUrl").getValue(String.class))
-                                    .into(mCustomerProfileImage);
-                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error getting customer info", e);
                     }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error getting customer info", e);
-                }
+                });
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Error getting customer info", error.toException());
+                Log.e(TAG, "Customer info error", error.toException());
             }
         });
     }
 
     private void getAssignedCustomerDestination() {
-        if (customerID == null || customerID.isEmpty()) {
-            Log.d("Destination", "CustomerID is null or empty");
-            return;
-        }
+        if (customerID == null || customerID.isEmpty()) return;
 
         DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
                 .getReference("CustomerRequest/" + customerID);
@@ -768,113 +653,73 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         customerRequestRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                try {
-                    if (!dataSnapshot.exists()) {
-                        Log.d("Destination", "No customer request data");
-                        return;
-                    }
+                safeHandler.updateUI(() -> {
+                    try {
+                        if (!dataSnapshot.exists()) return;
 
-                    // Get destination name and update UI immediately
-                    if (dataSnapshot.hasChild("destinationName")) {
-                        destination = dataSnapshot.child("destinationName").getValue(String.class);
-                    } else if (dataSnapshot.hasChild("destination")) {
-                        destination = dataSnapshot.child("destination").getValue(String.class);
-                    }
+                        if (dataSnapshot.hasChild("destinationName")) {
+                            destination = dataSnapshot.child("destinationName").getValue(String.class);
+                        } else if (dataSnapshot.hasChild("destination")) {
+                            destination = dataSnapshot.child("destination").getValue(String.class);
+                        }
 
-                    // Update UI with destination text
-                    runOnUiThread(() -> {
                         if (destination != null && !destination.isEmpty()) {
                             mCustomerDestination.setText("Destination: " + destination);
-                            mCustomerDestination.setVisibility(View.VISIBLE);
                         } else {
                             mCustomerDestination.setText("Destination: Not specified");
                         }
-                    });
 
-                    // Get destination coordinates
-                    Object latLngObj = null;
-                    if (dataSnapshot.hasChild("destinationLatLng")) {
-                        latLngObj = dataSnapshot.child("destinationLatLng").getValue();
-                    } else if (dataSnapshot.hasChild("destinationLat") && dataSnapshot.hasChild("destinationLng")) {
-                        // Handle case where lat/lng are separate fields
-                        double lat = dataSnapshot.child("destinationLat").getValue(Double.class);
-                        double lng = dataSnapshot.child("destinationLng").getValue(Double.class);
-                        latLngObj = Arrays.asList(lat, lng);
-                    }
-
-                    if (latLngObj != null) {
-                        List<Object> latLng = new ArrayList<>();
-                        if (latLngObj instanceof Map) {
-                            Map<String, Object> map = (Map<String, Object>) latLngObj;
-                            latLng.add(map.get("0"));
-                            latLng.add(map.get("1"));
-                        } else if (latLngObj instanceof List) {
-                            latLng = (List<Object>) latLngObj;
+                        Object latLngObj = null;
+                        if (dataSnapshot.hasChild("destinationLatLng")) {
+                            latLngObj = dataSnapshot.child("destinationLatLng").getValue();
+                        } else if (dataSnapshot.hasChild("destinationLat") && dataSnapshot.hasChild("destinationLng")) {
+                            double lat = dataSnapshot.child("destinationLat").getValue(Double.class);
+                            double lng = dataSnapshot.child("destinationLng").getValue(Double.class);
+                            latLngObj = Arrays.asList(lat, lng);
                         }
 
-                        if (latLng.size() >= 2) {
-                            double lat = Double.parseDouble(latLng.get(0).toString());
-                            double lng = Double.parseDouble(latLng.get(1).toString());
-                            destinationLatLng = new LatLng(lat, lng);
+                        if (latLngObj != null) {
+                            List<Object> latLng = new ArrayList<>();
+                            if (latLngObj instanceof Map) {
+                                Map<String, Object> map = (Map<String, Object>) latLngObj;
+                                latLng.add(map.get("0"));
+                                latLng.add(map.get("1"));
+                            } else if (latLngObj instanceof List) {
+                                latLng = (List<Object>) latLngObj;
+                            }
 
-                            // Update marker immediately
-                            updateDestinationMarker(latLng, destination);
-
-                            // Draw route if driver is enroute (status = 2) or if we have pickup location
-                            if ((status == 2 || pickupMarker != null) && mLastLocation != null) {
-                                getRouteToMarker(destinationLatLng);
+                            if (latLng.size() >= 2) {
+                                double lat = Double.parseDouble(latLng.get(0).toString());
+                                double lng = Double.parseDouble(latLng.get(1).toString());
+                                destinationLatLng = new LatLng(lat, lng);
+                                updateDestinationMarker(latLng, destination);
                             }
                         }
-                    } else {
-                        Log.d("Destination", "No destination coordinates found");
-                    }
-                } catch (Exception e) {
-                    Log.e("Destination", "Error processing destination", e);
-                    runOnUiThread(() -> {
+                    } catch (Exception e) {
+                        Log.e("Destination", "Error processing destination", e);
                         mCustomerDestination.setText("Destination: Error loading");
-                        Toast.makeText(DriverMapActivity.this,
-                                "Error loading destination details",
-                                Toast.LENGTH_SHORT).show();
-                    });
-                }
+                    }
+                });
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 Log.e("Destination", "Database error", databaseError.toException());
-                runOnUiThread(() -> {
-                    mCustomerDestination.setText("Destination: Unavailable");
-                    Toast.makeText(DriverMapActivity.this,
-                            "Failed to load destination",
-                            Toast.LENGTH_SHORT).show();
-                });
             }
         });
     }
 
     private void updateDestinationMarker(List<Object> latLng, String destinationName) {
-        runOnUiThread(() -> {
+        safeHandler.updateUI(() -> {
             try {
-                if (mMap == null) {
-                    Log.e("Destination", "Map is not ready");
-                    return;
-                }
-
-                if (latLng == null || latLng.size() < 2) {
-                    Log.e("Destination", "Invalid coordinates");
-                    return;
-                }
+                if (mMap == null || latLng == null || latLng.size() < 2) return;
 
                 double lat = Double.parseDouble(latLng.get(0).toString());
                 double lng = Double.parseDouble(latLng.get(1).toString());
                 LatLng destination = new LatLng(lat, lng);
 
-                // Remove old marker if exists
-                if (destinationMarker != null) {
-                    destinationMarker.remove();
-                }
+                if (destinationMarker != null) destinationMarker.remove();
 
-                // Create new marker
                 MarkerOptions options = new MarkerOptions()
                         .position(destination)
                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
@@ -884,194 +729,10 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                 }
 
                 destinationMarker = mMap.addMarker(options);
-
-                // If we're enroute and have a pickup location, draw the route
-                if (status == 2 && pickupMarker != null) {
-                    getRouteToMarker(destination);
-                }
-
-                // Zoom to show both pickup and destination if possible
-                if (pickupMarker != null) {
-                    LatLngBounds.Builder builder = new LatLngBounds.Builder();
-                    builder.include(pickupMarker.getPosition());
-                    builder.include(destination);
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100));
-                } else {
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(destination, 15));
-                }
-
             } catch (Exception e) {
                 Log.e("Destination", "Failed to update marker", e);
             }
         });
-    }
-
-    @Override
-    public void onMapReady(@NonNull GoogleMap googleMap) {
-        mMap = googleMap;
-        Log.d(TAG, "Map is now ready");  // Important debug log
-
-        // 1. First set up basic map properties
-        mMap.getUiSettings().setZoomControlsEnabled(true);
-        mMap.getUiSettings().setMyLocationButtonEnabled(true);
-
-        // 2. Set callback for when tiles are loaded (critical for marker visibility)
-        mMap.setOnMapLoadedCallback(() -> {
-            Log.d(TAG, "Map tiles fully loaded");
-            redrawExistingMarkers();  // Will redraw any existing markers
-        });
-
-        // 3. Check permissions and enable location
-        if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mMap.setMyLocationEnabled(true);
-            setupLocationUpdates();
-        } else {
-            requestLocationPermissions();
-        }
-        //testMarkerPlacement();
-    }
-
-    // New helper method to redraw existing markers
-    private void redrawExistingMarkers() {
-        runOnUiThread(() -> {
-            try {
-                // Redraw pickup marker if we have customer data
-                if (customerID != null && !customerID.isEmpty()) {
-                    DatabaseReference pickupRef = FirebaseDatabase.getInstance()
-                            .getReference("CustomerRequest/" + customerID + "/l");
-
-                    pickupRef.get().addOnCompleteListener(task -> {
-                        if (task.isSuccessful() && task.getResult() != null) {
-                            DataSnapshot snapshot = task.getResult();
-                            if (snapshot.exists()) {
-                                List<Object> location = (List<Object>) snapshot.getValue();
-                                if (location != null && location.size() >= 2) {
-                                    LatLng pickupLatLng = new LatLng(
-                                            Double.parseDouble(location.get(0).toString()),
-                                            Double.parseDouble(location.get(1).toString())
-                                    );
-
-                                    if (pickupMarker != null) {
-                                        pickupMarker.remove();
-                                    }
-                                    pickupMarker = mMap.addMarker(new MarkerOptions()
-                                            .position(pickupLatLng)
-                                            .title("Pickup Location")
-                                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
-                                }
-                            }
-                        }
-                    });
-                }
-
-                // Redraw destination marker if exists
-                if (destinationLatLng != null) {
-                    if (destinationMarker != null) {
-                        destinationMarker.remove();
-                    }
-                    destinationMarker = mMap.addMarker(new MarkerOptions()
-                            .position(destinationLatLng)
-                            .title(destination != null ? "Destination: " + destination : "Destination")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
-
-                    Log.d(TAG, "Destination marker redrawn at: " + destinationLatLng);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error redrawing markers", e);
-            }
-        });
-    }
-
-//    // Temporary test method (remove after verification)
-//    private void testMarkerPlacement() {
-//        new Handler().postDelayed(() -> {
-//            if (mMap != null) {
-//                // Clear any existing test markers/polylines first
-//                erasePolylines();
-//
-//                // Test locations (San Francisco coordinates)
-//                LatLng testPickup = new LatLng(37.7749, -122.4194);  // SF downtown
-//                LatLng testDestination = new LatLng(37.3352, -122.0096);  // Cupertino
-//
-//                // Add pickup marker (red)
-//                mMap.addMarker(new MarkerOptions()
-//                        .position(testPickup)
-//                        .title("TEST PICKUP")
-//                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
-//
-//                // Add destination marker (blue)
-//                mMap.addMarker(new MarkerOptions()
-//                        .position(testDestination)
-//                        .title("TEST DESTINATION")
-//                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
-//
-//                // Zoom to show both markers
-//                LatLngBounds bounds = new LatLngBounds.Builder()
-//                        .include(testPickup)
-//                        .include(testDestination)
-//                        .build();
-//                mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100));
-//
-//                // Test route drawing
-//                new Thread(() -> {
-//                    try {
-//                        GeoApiContext context = new GeoApiContext.Builder()
-//                                .apiKey("AIzaSyBoz_AvnAD8F8AS32u7k3tKas-lxqoXp1Q")
-//                                .build();
-//
-//                        DirectionsResult result = DirectionsApi.newRequest(context)
-//                                .origin(new com.google.maps.model.LatLng(
-//                                        testPickup.latitude,
-//                                        testPickup.longitude))
-//                                .destination(new com.google.maps.model.LatLng(
-//                                        testDestination.latitude,
-//                                        testDestination.longitude))
-//                                .mode(TravelMode.DRIVING)
-//                                .await();
-//
-//                        runOnUiThread(() -> {
-//                            if (result.routes != null && result.routes.length > 0) {
-//                                List<LatLng> decodedPath = PolyUtil.decode(
-//                                        result.routes[0].overviewPolyline.getEncodedPath());
-//
-//                                PolylineOptions polylineOptions = new PolylineOptions()
-//                                        .addAll(decodedPath)
-//                                        .color(Color.GREEN)  // Use green for test route
-//                                        .width(12);
-//
-//                                polylines.add(mMap.addPolyline(polylineOptions));
-//                                Log.d(TAG, "Test route drawn successfully");
-//                            } else {
-//                                Log.e(TAG, "No routes returned in test");
-//                            }
-//                        });
-//                    } catch (Exception e) {
-//                        Log.e(TAG, "Test route failed: " + e.getMessage());
-//                        runOnUiThread(() ->
-//                                Toast.makeText(this,
-//                                        "Test route failed: " + e.getMessage(),
-//                                        Toast.LENGTH_LONG).show());
-//                    }
-//                }).start();
-//
-//                Log.d(TAG, "Test markers placed at:\n" +
-//                        "Pickup: " + testPickup + "\n" +
-//                        "Destination: " + testDestination);
-//            }
-//        }, 3000);  // 3 second delay to ensure map is fully loaded
-//    }
-
-    private void enableMyLocation() {
-        try {
-            if (mMap != null) {
-                mMap.setMyLocationEnabled(true);
-                setupLocationUpdates();
-            }
-        } catch (SecurityException e) {
-            Log.e(TAG, "Location permission not granted", e);
-            requestLocationPermissions();
-        }
     }
 
     private void setupLocationUpdates() {
@@ -1083,18 +744,20 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
-                if (locationResult == null) return;
+                if (locationResult == null || isActivityDestroyed()) return;
 
                 Location location = locationResult.getLastLocation();
                 if (location != null) {
                     mLastLocation = location;
                     updateDriverLocation(location);
 
-                    // Auto-center map if no markers are present
                     if (pickupMarker == null && destinationMarker == null) {
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                new LatLng(location.getLatitude(), location.getLongitude()),
-                                15f));
+                        safeHandler.updateUI(() -> {
+                            if (mMap != null) {
+                                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                                        new LatLng(location.getLatitude(), location.getLongitude()),15f));
+                            }
+                        });
                     }
                 }
             }
@@ -1107,18 +770,8 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         }
     }
 
-    private void updateMapCamera(Location location) {
-        if (mMap != null) {
-            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
-        }
-    }
-
     private void updateDriverLocation(Location location) {
-        if (location == null || userID == null || userID.isEmpty()) {
-            Log.d(TAG, "Location or userID is null");
-            return;
-        }
+        if (location == null || userID == null || userID.isEmpty() || isActivityDestroyed()) return;
 
         try {
             DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("driversAvailable");
@@ -1127,46 +780,18 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             GeoFire geoFireWorking = new GeoFire(refWorking);
 
             if (customerID == null || customerID.isEmpty()) {
-                // Driver is available
-                geoFireWorking.removeLocation(userID, (key, error) -> {
-                    if (error != null) {
-                        Log.e(TAG, "Error removing from working: " + error.getMessage());
-                    }
-                });
-
+                geoFireWorking.removeLocation(userID);
                 geoFireAvailable.setLocation(userID,
-                        new GeoLocation(location.getLatitude(), location.getLongitude()),
-                        (key, error) -> {
-                            if (error != null) {
-                                Log.e(TAG, "Error updating available location: " + error.getMessage());
-                            }
-                        });
+                        new GeoLocation(location.getLatitude(), location.getLongitude()));
             } else {
-                // Driver is working (has a customer)
-                geoFireAvailable.removeLocation(userID, (key, error) -> {
-                    if (error != null) {
-                        Log.e(TAG, "Error removing from available: " + error.getMessage());
-                    }
-                });
-
+                geoFireAvailable.removeLocation(userID);
                 geoFireWorking.setLocation(userID,
-                        new GeoLocation(location.getLatitude(), location.getLongitude()),
-                        (key, error) -> {
-                            if (error != null) {
-                                Log.e(TAG, "Error updating working location: " + error.getMessage());
-                            } else {
-                                Log.d(TAG, "Driver location updated in driversWorking: " + location.getLatitude() + ", " + location.getLongitude());
-                            }
-                        });
+                        new GeoLocation(location.getLatitude(), location.getLongitude()));
 
                 DatabaseReference driverWorkingLocRef = FirebaseDatabase.getInstance()
                         .getReference("driversWorking/" + userID + "/l");
-                List<Object> locationList = new ArrayList<>();
-                locationList.add(location.getLatitude());
-                locationList.add(location.getLongitude());
-                driverWorkingLocRef.setValue(locationList)
-                        .addOnSuccessListener(aVoid -> Log.d(TAG, "Driver location updated under driversWorking/l"))
-                        .addOnFailureListener(e -> Log.e(TAG, "Failed to update driver location under driversWorking/l", e));
+                List<Object> locationList = Arrays.asList(location.getLatitude(), location.getLongitude());
+                driverWorkingLocRef.setValue(locationList);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error updating driver location", e);
@@ -1178,6 +803,19 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST_CODE);
+        } else {
+            enableMyLocation();
+        }
+    }
+
+    private void enableMyLocation() {
+        try {
+            if (mMap != null) {
+                mMap.setMyLocationEnabled(true);
+                setupLocationUpdates();
+            }
+        } catch (SecurityException e) {
+            Log.e(TAG, "Location permission not granted", e);
         }
     }
 
@@ -1188,13 +826,13 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 enableMyLocation();
             } else {
-                Toast.makeText(this, "Location permission is required for this app to function properly", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Location permission required", Toast.LENGTH_LONG).show();
             }
         }
     }
 
     private void cleanupDriverLocation() {
-        if (userID == null) return;
+        if (userID == null || isActivityDestroyed()) return;
 
         try {
             DatabaseReference refAvailable = FirebaseDatabase.getInstance()
@@ -1211,33 +849,52 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         }
     }
 
+    private void logoutUser() {
+        cleanupDriverLocation();
+
+        if (fusedLocationProviderClient != null && locationCallback != null) {
+            fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+        }
+
+        FirebaseAuth.getInstance().signOut();
+        startActivity(new Intent(DriverMapActivity.this, MainActivity.class));
+        finish();
+    }
+
+    private void openSettings() {
+        startActivity(new Intent(DriverMapActivity.this, DriverSettingsActivity.class));
+    }
+
+    private void erasePolylines() {
+        safeHandler.updateUI(() -> {
+            for (Polyline line : polylines) {
+                line.remove();
+            }
+            polylines.clear();
+        });
+    }
+
+    private boolean isActivityDestroyed() {
+        return isFinishing() || isDestroyed();
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
-        // Clean up ride if active
-        if (status != 0) { // 0 = available, 1 = picked up, 2 = enroute
-            if (userID != null) {
-                // Clear driver's customer request
-                DatabaseReference driverRef = FirebaseDatabase.getInstance()
-                        .getReference("Users/Drivers/" + userID + "/customerRequest");
-                driverRef.removeValue();
-
-                // Remove customer request if exists
-                if (customerID != null && !customerID.isEmpty()) {
-                    DatabaseReference customerRequestRef = FirebaseDatabase.getInstance()
-                            .getReference("CustomerRequest/" + customerID);
-                    customerRequestRef.removeValue();
-                }
-
-                // Update driver availability
-                DatabaseReference refWorking = FirebaseDatabase.getInstance()
-                        .getReference("driversWorking");
-                new GeoFire(refWorking).removeLocation(userID);
-            }
+        // Clean up all resources
+        if (assignedCustomerRef != null && assignedCustomerRefListener != null) {
+            assignedCustomerRef.removeEventListener(assignedCustomerRefListener);
         }
 
-        // Remove location updates
+        if (assignedCustomerPickupLocationRef != null && assignedCustomerPickupLocationRefListener != null) {
+            assignedCustomerPickupLocationRef.removeEventListener(assignedCustomerPickupLocationRefListener);
+        }
+
+        if (customerRequestRefListener != null && customerID != null && !customerID.isEmpty()) {
+            customerRequestRef.child(customerID).removeEventListener(customerRequestRefListener);
+        }
+
         if (fusedLocationProviderClient != null && locationCallback != null) {
             try {
                 fusedLocationProviderClient.removeLocationUpdates(locationCallback);
@@ -1246,33 +903,31 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             }
         }
 
-        // Remove Firebase listeners
-        if (assignedCustomerPickupLocationRefListener != null && assignedCustomerPickupLocationRef != null) {
-            assignedCustomerPickupLocationRef.removeEventListener(assignedCustomerPickupLocationRefListener);
-        }
-
-        // Clean up GeoFire locations
         cleanupDriverLocation();
-
-        // Clear all markers and polylines
-        erasePolylines();
-        removeAllMarkers();
-
-        super.onDestroy();
-    }
-
-    private void erasePolylines() {
-        for (Polyline line : polylines) {
-            line.remove();
-        }
-        polylines.clear();
+        new Handler().removeCallbacksAndMessages(null);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (status != 0) { // If driver is in a ride (1=picked up, 2=enroute)
+        if (status != 0) {
             endRide();
+        }
+    }
+
+    // Safe handler class to prevent memory leaks
+    private static class SafeHandler {
+        private final WeakReference<DriverMapActivity> activityRef;
+
+        SafeHandler(DriverMapActivity activity) {
+            this.activityRef = new WeakReference<>(activity);
+        }
+
+        void updateUI(Runnable update) {
+            DriverMapActivity activity = activityRef.get();
+            if (activity != null && !activity.isActivityDestroyed()) {
+                activity.runOnUiThread(update);
+            }
         }
     }
 }
